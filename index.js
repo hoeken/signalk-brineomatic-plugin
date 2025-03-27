@@ -25,23 +25,17 @@ module.exports = function (app) {
     plugin.start = function (options, restartPlugin) {
         // Here we put our plugin logic
         app.debug('Plugin started');
-        app.debug(YarrboardClient.version);
-        //app.debug('Schema: %s', JSON.stringify(options));
+        app.debug(`YarrboardClient.version: ${YarrboardClient.version}`);
+        //app.debug('Schema: %s', stringify(options));
 
         for (board of options.config)
         {
             //app.debug('Board: %s', JSON.stringify(board));
 
-            let yb = plugin.createYarrboard(board.host.trim(), board.username, board.password, board.require_login, board.use_ssl);
+            let brineomatic = plugin.createYarrboard(board.host.trim(), board.username, board.password, board.require_login, board.use_ssl);
+            brineomatic.start();            
 
-            yb.onopen = function (event) {
-                yb.getConfig();
-                yb.startUpdatePoller(board.update_interval);
-            }
-            
-            yb.start();            
-
-            plugin.connections.push(yb);
+            plugin.connections.push(brineomatic);
         }
     };
   
@@ -123,25 +117,56 @@ module.exports = function (app) {
                     app.setPluginStatus(`[${this.hostname}] ${data.message}`);
             }
         }
+        
+        yb.onopen = function (event) {
+            this.getConfig();
+            this.startUpdatePoller(board.update_interval);
+        } 
 
         yb.queueDeltasAndUpdates = function (data) {
 
           let mainPath = this.getMainBoardPath();
           
           if (data.brineomatic) {
-            this.queueDelta(`${mainPath}.status`, data.status);
-            this.queueDelta(`${mainPath}.run_result`, data.run_result);
-            this.queueDelta(`${mainPath}.flush_result`, data.flush_result);
-            this.queueDelta(`${mainPath}.pickle_result`, data.pickle_result);
-            this.queueDelta(`${mainPath}.depickle_result`, data.depickle_result);
-            this.queueDelta(`${mainPath}.motor_temperature`, data.motor_temperature + 273.15);
-            this.queueDelta(`${mainPath}.water_temperature`, data.water_temperature + 273.15);
-            this.queueDelta(`${mainPath}.flowrate`, data.flowrate / 3600000);
-            this.queueDelta(`${mainPath}.volume`, data.volume * 0.001);
-            this.queueDelta(`${mainPath}.salinity`, data.salinity * 0.001);
-            this.queueDelta(`${mainPath}.filter_pressure`, data.filter_pressure * 6894.76);
-            this.queueDelta(`${mainPath}.membrane_pressure`, data.membrane_pressure * 6894.76);
-            this.queueDelta(`${mainPath}.tank_level`, data.tank_level);
+            
+            if (data.hasOwnProperty("status"))
+              this.queueDelta(`${mainPath}.status`, data.status);
+
+            if (data.hasOwnProperty("run_result"))
+              this.queueDelta(`${mainPath}.run_result`, data.run_result);
+
+            if (data.hasOwnProperty("flush_result"))
+              this.queueDelta(`${mainPath}.flush_result`, data.flush_result);
+
+            if (data.hasOwnProperty("pickle_result"))
+              this.queueDelta(`${mainPath}.pickle_result`, data.pickle_result);
+
+            if (data.hasOwnProperty("depickle_result"))
+              this.queueDelta(`${mainPath}.depickle_result`, data.depickle_result);
+
+            if (data.hasOwnProperty("motor_temperature"))
+              this.queueDelta(`${mainPath}.motor_temperature`, data.motor_temperature + 273.15);
+
+            if (data.hasOwnProperty("water_temperature"))
+              this.queueDelta(`${mainPath}.water_temperature`, data.water_temperature + 273.15);
+
+            if (data.hasOwnProperty("flowrate"))
+              this.queueDelta(`${mainPath}.flowrate`, data.flowrate / 3600000);
+
+            if (data.hasOwnProperty("volume"))
+              this.queueDelta(`${mainPath}.volume`, data.volume * 0.001);
+
+            if (data.hasOwnProperty("salinity"))
+              this.queueDelta(`${mainPath}.salinity`, data.salinity * 0.001);
+
+            if (data.hasOwnProperty("filter_pressure"))
+              this.queueDelta(`${mainPath}.filter_pressure`, data.filter_pressure * 6894.76);
+
+            if (data.hasOwnProperty("membrane_pressure"))
+              this.queueDelta(`${mainPath}.membrane_pressure`, data.membrane_pressure * 6894.76);
+
+            if (data.hasOwnProperty("tank_level"))
+              this.queueDelta(`${mainPath}.tank_level`, data.tank_level);
           
             if (data.hasOwnProperty("boost_pump_on"))
               this.queueDelta(`${mainPath}.boost_pump_on`, data.boost_pump_on);
@@ -161,7 +186,9 @@ module.exports = function (app) {
             if (data.hasOwnProperty("next_flush_countdown"))
               this.queueDelta(`${mainPath}.next_flush_countdown`, data.next_flush_countdown);
 
-            this.queueDelta(`${mainPath}.runtime_elapsed`, data.runtime_elapsed);
+            if (data.hasOwnProperty("runtime_elapsed"))
+              this.queueDelta(`${mainPath}.runtime_elapsed`, data.runtime_elapsed);
+
             if (data.hasOwnProperty("finish_countdown"))
               this.queueDelta(`${mainPath}.finish_countdown`, data.finish_countdown);
 
@@ -214,7 +241,7 @@ module.exports = function (app) {
             if (!this.config)
                 return;
 
-            //console.log(JSON.stringify(data));
+            //app.debug(JSON.stringify(data));
 
             let mainPath = this.getMainBoardPath();
 
@@ -235,7 +262,7 @@ module.exports = function (app) {
 
         yb.getMainBoardPath = function (data)
         {
-            return `electrical.brineomatic.${this.config.hostname}`;
+            return `watermaker.${this.config.hostname}`;
         }
 
         yb.queueUpdate = function (path, value, units, description)
