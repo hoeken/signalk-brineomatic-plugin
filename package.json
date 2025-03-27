@@ -1,0 +1,27 @@
+{
+  "name": "signalk-brineomatic-plugin",
+  "version": "1.0.0",
+  "description": "SignalK plugin for the Brineomatic watermaker controller.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hoeken/signalk-brineomatic-plugin.git"
+  },
+  "keywords": [
+    "signalk-node-server-plugin",
+    "signalk-category-hardware"
+  ],
+  "author": "Zach Hoeken",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hoeken/signalk-brineomatic-plugin/issues"
+  },
+  "homepage": "https://github.com/hoeken/signalk-brineomatic-plugin#readme",
+  "dependencies": {
+    "websocket": "^1.0.34",
+    "yarrboard-client": "^1.2.1"
+  }
+}
