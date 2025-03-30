@@ -9,22 +9,8 @@ module.exports = function (app) {
     
     plugin.connections = [];
 
-    plugin.metas = {
-        "name": {"units": "", "description": "User defined name of channel."},
-        "hasPWM": {"units": "", "description": "Whether this channel hardware is capable of PWM (duty cycle, dimming, etc)"},
-        "hasCurrent": {"units": "", "description": "Whether this channel has current monitoring."},
-        "softFuse": {"units": "A", "description": "Software defined fuse, in amps."},
-        "isDimmable": {"units": "", "description": "Whether the channel has dimming enabled or not."},
-        "state": {"units": "", "description": "Whether the channel is on or not."},
-        "duty": {"units": "%", "description": "Duty cycle as a ratio from 0 to 1"},
-        "current": {"units": "A", "description": "Current in amps"},
-        "aH": {"units": "aH", "description": "Consumed amp hours since board restart"},
-        "wH": {"units": "wH", "description": "Consumed watt hours since board restart"},
-    }
-
     plugin.start = function (options, restartPlugin) {
         // Here we put our plugin logic
-        app.debug('Plugin started');
         app.debug(`YarrboardClient.version: ${YarrboardClient.version}`);
         //app.debug('Schema: %s', stringify(options));
 
@@ -157,7 +143,7 @@ module.exports = function (app) {
               this.queueDelta(`${mainPath}.volume`, data.volume * 0.001);
 
             if (data.hasOwnProperty("salinity"))
-              this.queueDelta(`${mainPath}.salinity`, data.salinity * 0.001);
+              this.queueDelta(`${mainPath}.salinity`, data.salinity);
 
             if (data.hasOwnProperty("filter_pressure"))
               this.queueDelta(`${mainPath}.filter_pressure`, data.filter_pressure * 6894.76);
@@ -184,28 +170,28 @@ module.exports = function (app) {
               this.queueDelta(`${mainPath}.cooling_fan_on`, data.cooling_fan_on);
 
             if (data.hasOwnProperty("next_flush_countdown"))
-              this.queueDelta(`${mainPath}.next_flush_countdown`, data.next_flush_countdown);
+              this.queueDelta(`${mainPath}.next_flush_countdown`, Math.round(data.next_flush_countdown / 1000000));
 
             if (data.hasOwnProperty("runtime_elapsed"))
-              this.queueDelta(`${mainPath}.runtime_elapsed`, data.runtime_elapsed);
+              this.queueDelta(`${mainPath}.runtime_elapsed`, Math.round(data.runtime_elapsed / 1000000));
 
             if (data.hasOwnProperty("finish_countdown"))
-              this.queueDelta(`${mainPath}.finish_countdown`, data.finish_countdown);
+              this.queueDelta(`${mainPath}.finish_countdown`, Math.round(data.finish_countdown / 1000000));
 
             if (data.hasOwnProperty("flush_elapsed"))
-              this.queueDelta(`${mainPath}.flush_elapsed`, data.flush_elapsed);
+              this.queueDelta(`${mainPath}.flush_elapsed`, Math.round(data.flush_elapsed / 1000000));
             if (data.hasOwnProperty("flush_countdown"))
-              this.queueDelta(`${mainPath}.flush_countdown`, data.flush_countdown);
+              this.queueDelta(`${mainPath}.flush_countdown`, Math.round(data.flush_countdown / 1000000));
 
             if (data.hasOwnProperty("pickle_elapsed"))
-              this.queueDelta(`${mainPath}.pickle_elapsed`, data.pickle_elapsed);
+              this.queueDelta(`${mainPath}.pickle_elapsed`, Math.round(data.pickle_elapsed / 1000000));
             if (data.hasOwnProperty("pickle_countdown"))
-              this.queueDelta(`${mainPath}.pickle_countdown`, data.pickle_countdown);
+              this.queueDelta(`${mainPath}.pickle_countdown`, Math.round(data.pickle_countdown / 1000000));
             
             if (data.hasOwnProperty("depickle_elapsed"))
-              this.queueDelta(`${mainPath}.depickle_elapsed`, data.depickle_elapsed);
+              this.queueDelta(`${mainPath}.depickle_elapsed`, Math.round(data.depickle_elapsed / 1000000));
             if (data.hasOwnProperty("depickle_countdown"))
-              this.queueDelta(`${mainPath}.depickle_countdown`, data.depickle_countdown);
+              this.queueDelta(`${mainPath}.depickle_countdown`, Math.round(data.depickle_countdown / 1000000));
           }
         }
 
@@ -217,17 +203,45 @@ module.exports = function (app) {
 
             //console.log(JSON.stringify(data));
 
-            this.queueUpdate(`${mainPath}.board.firmware_version`, data.firmware_version, "", "Firmware version of the board.");
-            this.queueUpdate(`${mainPath}.board.hardware_version`, data.hardware_version, "", "Hardware version of the board.");
-            this.queueUpdate(`${mainPath}.board.name`, data.name, "", "User defined name of the board.");
-            this.queueUpdate(`${mainPath}.board.uuid`, data.uuid, "", "Unique ID of the board.");
+            this.queueUpdate(`${mainPath}.board.firmware_version`, data.firmware_version, "", "Firmware version of the board");
+            this.queueUpdate(`${mainPath}.board.hardware_version`, data.hardware_version, "", "Hardware version of the board");
+            this.queueUpdate(`${mainPath}.board.name`, data.name, "", "User defined name of the board");
+            this.queueUpdate(`${mainPath}.board.uuid`, data.uuid, "", "Unique ID of the board");
             this.queueUpdate(`${mainPath}.board.hostname`, data.hostname + ".local", "", "Hostname of the board");
             this.queueUpdate(`${mainPath}.board.use_ssl`, data.use_ssl, "", "Whether the app uses SSL or not");
-            this.queueMeta(`${mainPath}.board.uptime`, "S", "Seconds since the last reboot");
+            this.queueMeta(`${mainPath}.board.uptime`, "s", "Seconds since the last reboot");
 
             //some boards don't have this.
             if (data.bus_voltage)
-                this.queueMeta(`${mainPath}.board.uuid`, "V", "Supply voltage to the board.");
+                this.queueMeta(`${mainPath}.board.uuid`, "V", "Supply voltage to the board");
+
+            this.queueMeta(`${mainPath}.status`, "", "Current status of watermaker");
+            this.queueMeta(`${mainPath}.run_result`, "", "Result from last run cycle");
+            this.queueMeta(`${mainPath}.flush_result`, "", "Result from last flush cycle");
+            this.queueMeta(`${mainPath}.pickle_result`, "", "Result from last pickle cycle");
+            this.queueMeta(`${mainPath}.depickle_result`, "", "Result from last depickle cycle");
+            this.queueMeta(`${mainPath}.motor_temperature`, "K", "Motor temperature");
+            this.queueMeta(`${mainPath}.water_temperature`, "K", "Source water temperature");
+            this.queueMeta(`${mainPath}.flowrate`, "m3/s", "Product output flowrate");
+            this.queueMeta(`${mainPath}.volume`, "m3", "Product output volume total (this cycle)");
+            this.queueMeta(`${mainPath}.salinity`, "mg/L", "Product output salinity (PPM)");
+            this.queueMeta(`${mainPath}.filter_pressure`, "Pa", "Pre-filter Pressure");
+            this.queueMeta(`${mainPath}.membrane_pressure`, "Pa", "Membrane Pressure");
+            this.queueMeta(`${mainPath}.tank_level`, "ratio", "Tank level percentage");
+            this.queueMeta(`${mainPath}.boost_pump_on`, "", "Status of the boost pump");
+            this.queueMeta(`${mainPath}.high_pressure_pump_on`, "", "Status of the high pressure pump");
+            this.queueMeta(`${mainPath}.diverter_valve_open`, "", "Status of the diverter valve");
+            this.queueMeta(`${mainPath}.flush_valve_open`, "", "Status of the flush valve");
+            this.queueMeta(`${mainPath}.cooling_fan_on`, "", "Status of the cooling fan");
+            this.queueMeta(`${mainPath}.next_flush_countdown`, "s", "Time until next automatic flush cycle");
+            this.queueMeta(`${mainPath}.runtime_elapsed`, "s", "Total elapsed time for watermaking cycle");
+            this.queueMeta(`${mainPath}.finish_countdown`, "s", "Time until watermaker cycle completes (estimate)");
+            this.queueMeta(`${mainPath}.flush_elapsed`, "s", "Time elapsed for flush cycle");
+            this.queueMeta(`${mainPath}.flush_countdown`, "s", "Time until flush cycle completes");
+            this.queueMeta(`${mainPath}.pickle_elapsed`, "s", "Time elapsed for pickle cycle");
+            this.queueMeta(`${mainPath}.pickle_countdown`, "s", "Time until pickle cycle completes");
+            this.queueMeta(`${mainPath}.depickle_elapsed`, "s", "Time for depickle cycle");
+            this.queueMeta(`${mainPath}.depickle_countdown`, "s", "Time until depickle cycle completes");
 
             //common handler for config and update
             this.queueDeltasAndUpdates(data);
@@ -251,7 +265,7 @@ module.exports = function (app) {
 
             //store our uptime
             if (data.uptime)
-                this.queueUpdate(`${mainPath}.board.uptime`, data.uptime, "S", "Uptime since the last reboot");
+                this.queueUpdate(`${mainPath}.board.uptime`, Math.round(data.uptime / 1000000), "s", "Uptime since the last reboot");
 
             //common handler for config and update
             this.queueDeltasAndUpdates(data);
