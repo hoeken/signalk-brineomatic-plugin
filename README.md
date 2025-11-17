@@ -32,9 +32,14 @@ The rest of the data is located at watermaker.{boardname}.*:
 | `watermaker.{boardname}.depickle_result`                 |        | Result from last depickle cycle                 |
 | `watermaker.{boardname}.motor_temperature`               | K      | Motor temperature                               |
 | `watermaker.{boardname}.water_temperature`               | K      | Source water temperature                        |
-| `watermaker.{boardname}.flowrate`                        | m³/s   | Product output flowrate                         |
+| `watermaker.{boardname}.flowrate`                        | m³/s   | Product output flowrate (old path)              |
+| `watermaker.{boardname}.product_flowrate`                | m³/s   | Product output flowrate                         |
+| `watermaker.{boardname}.brine_flowrate`                  | m³/s   | Brine output flowrate                           |
+| `watermaker.{boardname}.total_flowrate`                  | m³/s   | Total output flowrate                           |
 | `watermaker.{boardname}.volume`                          | m³     | Product output volume total (this cycle)        |
-| `watermaker.{boardname}.salinity`                        | mg/L   | Product output salinity (PPM)                   |
+| `watermaker.{boardname}.salinity`                        | mg/L   | Product output salinity (PPM) (old path)        |
+| `watermaker.{boardname}.product_salinity`                | mg/L   | Product output salinity (PPM)                   |
+| `watermaker.{boardname}.brine_salinity`                  | mg/L   | Brine output salinity (PPM)                     |
 | `watermaker.{boardname}.filter_pressure`                 | Pa     | Pre-filter Pressure                             |
 | `watermaker.{boardname}.membrane_pressure`               | Pa     | Membrane Pressure                               |
 | `watermaker.{boardname}.tank_level`                      | ratio  | Tank level percentage                           |

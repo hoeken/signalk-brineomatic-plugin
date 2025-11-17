@@ -138,12 +138,22 @@ module.exports = function (app) {
 
             if (data.hasOwnProperty("flowrate"))
               this.queueDelta(`${mainPath}.flowrate`, data.flowrate / 3600000);
+            if (data.hasOwnProperty("product_flowrate"))
+              this.queueDelta(`${mainPath}.product_flowrate`, data.product_flowrate / 3600000);
+            if (data.hasOwnProperty("brine_flowrate"))
+              this.queueDelta(`${mainPath}.brine_flowrate`, data.brine_flowrate / 3600000);
+            if (data.hasOwnProperty("total_flowrate"))
+              this.queueDelta(`${mainPath}.total_flowrate`, data.total_flowrate / 3600000);
 
             if (data.hasOwnProperty("volume"))
               this.queueDelta(`${mainPath}.volume`, data.volume * 0.001);
 
             if (data.hasOwnProperty("salinity"))
               this.queueDelta(`${mainPath}.salinity`, data.salinity);
+            if (data.hasOwnProperty("product_salinity"))
+              this.queueDelta(`${mainPath}.product_salinity`, data.product_salinity);
+            if (data.hasOwnProperty("brine_salinity"))
+              this.queueDelta(`${mainPath}.brine_salinity`, data.brine_salinity);
 
             if (data.hasOwnProperty("filter_pressure"))
               this.queueDelta(`${mainPath}.filter_pressure`, data.filter_pressure * 6894.76);
@@ -213,7 +223,7 @@ module.exports = function (app) {
 
             //some boards don't have this.
             if (data.bus_voltage)
-                this.queueMeta(`${mainPath}.board.uuid`, "V", "Supply voltage to the board");
+                this.queueMeta(`${mainPath}.board.bus_voltage`, "V", "Supply voltage to the board");
 
             this.queueMeta(`${mainPath}.status`, "", "Current status of watermaker");
             this.queueMeta(`${mainPath}.run_result`, "", "Result from last run cycle");
@@ -223,8 +233,13 @@ module.exports = function (app) {
             this.queueMeta(`${mainPath}.motor_temperature`, "K", "Motor temperature");
             this.queueMeta(`${mainPath}.water_temperature`, "K", "Source water temperature");
             this.queueMeta(`${mainPath}.flowrate`, "m3/s", "Product output flowrate");
+            this.queueMeta(`${mainPath}.product_flowrate`, "m3/s", "Product output flowrate");
+            this.queueMeta(`${mainPath}.brine_flowrate`, "m3/s", "Brine output flowrate");
+            this.queueMeta(`${mainPath}.total_flowrate`, "m3/s", "Total output flowrate");
             this.queueMeta(`${mainPath}.volume`, "m3", "Product output volume total (this cycle)");
             this.queueMeta(`${mainPath}.salinity`, "mg/L", "Product output salinity (PPM)");
+            this.queueMeta(`${mainPath}.product_salinity`, "mg/L", "Product output salinity (PPM)");
+            this.queueMeta(`${mainPath}.brine_salinity`, "mg/L", "Brine output salinity (PPM)");
             this.queueMeta(`${mainPath}.filter_pressure`, "Pa", "Pre-filter Pressure");
             this.queueMeta(`${mainPath}.membrane_pressure`, "Pa", "Membrane Pressure");
             this.queueMeta(`${mainPath}.tank_level`, "ratio", "Tank level percentage");
