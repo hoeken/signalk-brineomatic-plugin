@@ -11,15 +11,18 @@ module.exports = function (app) {
   plugin.bus = new SignalKBus(app, plugin.id);
   plugin.connections = [];
 
-  plugin.start = function (options, restartPlugin) {
-    // Here we put our plugin logic
+  plugin.start = function (options, _restartPlugin) {
     app.debug(`YarrboardClient.version: ${YarrboardClient.version}`);
-    //app.debug('Schema: %s', stringify(options));
 
-    for (board of options.config) {
-      //app.debug('Board: %s', JSON.stringify(board));
-
-      let brineomatic = plugin.createYarrboard(board.host.trim(), board.username, board.password, board.require_login, board.use_ssl);
+    for (const board of options.config) {
+      let brineomatic = plugin.createYarrboard(
+        board.host.trim(),
+        board.username,
+        board.password,
+        board.require_login,
+        board.use_ssl,
+        board.update_interval,
+      );
       brineomatic.start();
 
       plugin.connections.push(brineomatic);
@@ -27,11 +30,9 @@ module.exports = function (app) {
   };
 
   plugin.stop = function () {
-    // Here we put logic we need when the plugin stops
     app.debug("Plugin stopped");
 
-    //close all our connections
-    for (yb of plugin.connections)
+    for (const yb of plugin.connections)
       yb.close();
     plugin.connections = [];
   };
@@ -82,9 +83,10 @@ module.exports = function (app) {
     },
   };
 
-  plugin.createYarrboard = function (hostname, username = "admin", password = "admin", require_login = false, use_ssl = false) {
+  plugin.createYarrboard = function (hostname, username = "admin", password = "admin", require_login = false, use_ssl = false, update_interval = 1000) {
     var yb = new YarrboardClient(hostname, username, password, require_login, use_ssl);
     yb.bus = plugin.bus;
+    yb.update_interval = update_interval;
 
     yb.onmessage = function (data) {
       if (data.msg == "update")
@@ -99,9 +101,9 @@ module.exports = function (app) {
       }
     };
 
-    yb.onopen = function (event) {
+    yb.onopen = function (_event) {
       this.getConfig();
-      this.startUpdatePoller(board.update_interval);
+      this.startUpdatePoller(this.update_interval);
     };
 
     yb.queueDeltasAndUpdates = function (data) {
@@ -110,94 +112,94 @@ module.exports = function (app) {
 
       if (data.brineomatic) {
 
-        if (data.hasOwnProperty("status"))
+        if (Object.hasOwn(data, "status"))
           this.bus.queueDelta(`${mainPath}.status`, data.status);
 
-        if (data.hasOwnProperty("run_result"))
+        if (Object.hasOwn(data, "run_result"))
           this.bus.queueDelta(`${mainPath}.run_result`, data.run_result);
 
-        if (data.hasOwnProperty("flush_result"))
+        if (Object.hasOwn(data, "flush_result"))
           this.bus.queueDelta(`${mainPath}.flush_result`, data.flush_result);
 
-        if (data.hasOwnProperty("pickle_result"))
+        if (Object.hasOwn(data, "pickle_result"))
           this.bus.queueDelta(`${mainPath}.pickle_result`, data.pickle_result);
 
-        if (data.hasOwnProperty("depickle_result"))
+        if (Object.hasOwn(data, "depickle_result"))
           this.bus.queueDelta(`${mainPath}.depickle_result`, data.depickle_result);
 
-        if (data.hasOwnProperty("motor_temperature"))
+        if (Object.hasOwn(data, "motor_temperature"))
           this.bus.queueDelta(`${mainPath}.motor_temperature`, data.motor_temperature + 273.15);
 
-        if (data.hasOwnProperty("water_temperature"))
+        if (Object.hasOwn(data, "water_temperature"))
           this.bus.queueDelta(`${mainPath}.water_temperature`, data.water_temperature + 273.15);
 
-        if (data.hasOwnProperty("flowrate"))
+        if (Object.hasOwn(data, "flowrate"))
           this.bus.queueDelta(`${mainPath}.flowrate`, data.flowrate / 3600000);
-        if (data.hasOwnProperty("product_flowrate"))
+        if (Object.hasOwn(data, "product_flowrate"))
           this.bus.queueDelta(`${mainPath}.product_flowrate`, data.product_flowrate / 3600000);
-        if (data.hasOwnProperty("brine_flowrate"))
+        if (Object.hasOwn(data, "brine_flowrate"))
           this.bus.queueDelta(`${mainPath}.brine_flowrate`, data.brine_flowrate / 3600000);
-        if (data.hasOwnProperty("total_flowrate"))
+        if (Object.hasOwn(data, "total_flowrate"))
           this.bus.queueDelta(`${mainPath}.total_flowrate`, data.total_flowrate / 3600000);
 
-        if (data.hasOwnProperty("volume"))
+        if (Object.hasOwn(data, "volume"))
           this.bus.queueDelta(`${mainPath}.volume`, data.volume * 0.001);
-        if (data.hasOwnProperty("flush_volume"))
+        if (Object.hasOwn(data, "flush_volume"))
           this.bus.queueDelta(`${mainPath}.flush_volume`, data.flush_volume * 0.001);
 
-        if (data.hasOwnProperty("salinity"))
+        if (Object.hasOwn(data, "salinity"))
           this.bus.queueDelta(`${mainPath}.salinity`, data.salinity);
-        if (data.hasOwnProperty("product_salinity"))
+        if (Object.hasOwn(data, "product_salinity"))
           this.bus.queueDelta(`${mainPath}.product_salinity`, data.product_salinity);
-        if (data.hasOwnProperty("brine_salinity"))
+        if (Object.hasOwn(data, "brine_salinity"))
           this.bus.queueDelta(`${mainPath}.brine_salinity`, data.brine_salinity);
 
-        if (data.hasOwnProperty("filter_pressure"))
+        if (Object.hasOwn(data, "filter_pressure"))
           this.bus.queueDelta(`${mainPath}.filter_pressure`, data.filter_pressure * 100000);
 
-        if (data.hasOwnProperty("membrane_pressure"))
+        if (Object.hasOwn(data, "membrane_pressure"))
           this.bus.queueDelta(`${mainPath}.membrane_pressure`, data.membrane_pressure * 100000);
 
-        if (data.hasOwnProperty("tank_level"))
+        if (Object.hasOwn(data, "tank_level"))
           this.bus.queueDelta(`${mainPath}.tank_level`, data.tank_level);
 
-        if (data.hasOwnProperty("boost_pump_on"))
+        if (Object.hasOwn(data, "boost_pump_on"))
           this.bus.queueDelta(`${mainPath}.boost_pump_on`, data.boost_pump_on);
 
-        if (data.hasOwnProperty("high_pressure_pump_on"))
+        if (Object.hasOwn(data, "high_pressure_pump_on"))
           this.bus.queueDelta(`${mainPath}.high_pressure_pump_on`, data.high_pressure_pump_on);
 
-        if (data.hasOwnProperty("diverter_valve_open"))
+        if (Object.hasOwn(data, "diverter_valve_open"))
           this.bus.queueDelta(`${mainPath}.diverter_valve_open`, data.diverter_valve_open);
 
-        if (data.hasOwnProperty("flush_valve_open"))
+        if (Object.hasOwn(data, "flush_valve_open"))
           this.bus.queueDelta(`${mainPath}.flush_valve_open`, data.flush_valve_open);
 
-        if (data.hasOwnProperty("cooling_fan_on"))
+        if (Object.hasOwn(data, "cooling_fan_on"))
           this.bus.queueDelta(`${mainPath}.cooling_fan_on`, data.cooling_fan_on);
 
-        if (data.hasOwnProperty("next_flush_countdown"))
+        if (Object.hasOwn(data, "next_flush_countdown"))
           this.bus.queueDelta(`${mainPath}.next_flush_countdown`, Math.round(data.next_flush_countdown / 1000));
 
-        if (data.hasOwnProperty("runtime_elapsed"))
+        if (Object.hasOwn(data, "runtime_elapsed"))
           this.bus.queueDelta(`${mainPath}.runtime_elapsed`, Math.round(data.runtime_elapsed / 1000));
 
-        if (data.hasOwnProperty("finish_countdown"))
+        if (Object.hasOwn(data, "finish_countdown"))
           this.bus.queueDelta(`${mainPath}.finish_countdown`, Math.round(data.finish_countdown / 1000));
 
-        if (data.hasOwnProperty("flush_elapsed"))
+        if (Object.hasOwn(data, "flush_elapsed"))
           this.bus.queueDelta(`${mainPath}.flush_elapsed`, Math.round(data.flush_elapsed / 1000));
-        if (data.hasOwnProperty("flush_countdown"))
+        if (Object.hasOwn(data, "flush_countdown"))
           this.bus.queueDelta(`${mainPath}.flush_countdown`, Math.round(data.flush_countdown / 1000));
 
-        if (data.hasOwnProperty("pickle_elapsed"))
+        if (Object.hasOwn(data, "pickle_elapsed"))
           this.bus.queueDelta(`${mainPath}.pickle_elapsed`, Math.round(data.pickle_elapsed / 1000));
-        if (data.hasOwnProperty("pickle_countdown"))
+        if (Object.hasOwn(data, "pickle_countdown"))
           this.bus.queueDelta(`${mainPath}.pickle_countdown`, Math.round(data.pickle_countdown / 1000));
 
-        if (data.hasOwnProperty("depickle_elapsed"))
+        if (Object.hasOwn(data, "depickle_elapsed"))
           this.bus.queueDelta(`${mainPath}.depickle_elapsed`, Math.round(data.depickle_elapsed / 1000));
-        if (data.hasOwnProperty("depickle_countdown"))
+        if (Object.hasOwn(data, "depickle_countdown"))
           this.bus.queueDelta(`${mainPath}.depickle_countdown`, Math.round(data.depickle_countdown / 1000));
       }
     };
@@ -285,7 +287,7 @@ module.exports = function (app) {
       this.bus.sendUpdates();
     };
 
-    yb.getMainBoardPath = function (data) {
+    yb.getMainBoardPath = function () {
       return `watermaker.${this.boardname}`;
     };
 
