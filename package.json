@@ -4,7 +4,15 @@
   "description": "SignalK plugin for the Brineomatic watermaker controller.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
+    "format": "eslint --fix . && prettier --write .",
+    "format:check": "eslint . && prettier --check ."
+  },
+  "lint-staged": {
+    "*.js": "eslint --fix",
+    "*.json": "prettier --write"
   },
   "repository": {
     "type": "git",
@@ -23,5 +31,12 @@
   "dependencies": {
     "websocket": "^1.0.34",
     "yarrboard-client": "^1.2.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@stylistic/eslint-plugin": "^5.10.0",
+    "eslint": "^10.4.0",
+    "globals": "^17.6.0",
+    "prettier": "^3.8.3"
   }
 }

@@ -1,12 +1,12 @@
-const YarrboardClient = require('yarrboard-client');
-const { SignalKBus } = require('./signalk-bus.js');
+const YarrboardClient = require("yarrboard-client");
+const { SignalKBus } = require("./signalk-bus.js");
 
 module.exports = function (app) {
   var plugin = {};
 
-  plugin.id = 'signalk-brineomatic-plugin';
-  plugin.name = 'Brineomatic';
-  plugin.description = 'SignalK plugin for the Brineomatic watermaker controller';
+  plugin.id = "signalk-brineomatic-plugin";
+  plugin.name = "Brineomatic";
+  plugin.description = "SignalK plugin for the Brineomatic watermaker controller";
 
   plugin.bus = new SignalKBus(app, plugin.id);
   plugin.connections = [];
@@ -28,7 +28,7 @@ module.exports = function (app) {
 
   plugin.stop = function () {
     // Here we put logic we need when the plugin stops
-    app.debug('Plugin stopped');
+    app.debug("Plugin stopped");
 
     //close all our connections
     for (yb of plugin.connections)
@@ -41,45 +41,45 @@ module.exports = function (app) {
     type: "object",
     properties: {
       config: {
-        type: 'array',
-        title: 'Add board config',
+        type: "array",
+        title: "Add board config",
         items: {
-          type: 'object',
+          type: "object",
           properties: {
             host: {
-              type: 'string',
-              title: 'Brineomatic hostname or IP',
-              default: 'brineomatic.local'
+              type: "string",
+              title: "Brineomatic hostname or IP",
+              default: "brineomatic.local",
             },
             use_ssl: {
-              type: 'boolean',
-              title: 'Use SSL / HTTPS?',
+              type: "boolean",
+              title: "Use SSL / HTTPS?",
               default: false,
             },
             update_interval: {
-              type: 'number',
-              title: 'Update interval (ms)',
-              default: 1000
+              type: "number",
+              title: "Update interval (ms)",
+              default: 1000,
             },
             require_login: {
-              type: 'boolean',
-              title: 'Login required?',
+              type: "boolean",
+              title: "Login required?",
               default: false,
             },
             username: {
-              type: 'string',
-              title: 'Username',
-              default: 'admin',
+              type: "string",
+              title: "Username",
+              default: "admin",
             },
             password: {
-              type: 'string',
-              title: 'Password',
-              default: 'admin',
-            }
-          }
-        }
-      }
-    }
+              type: "string",
+              title: "Password",
+              default: "admin",
+            },
+          },
+        },
+      },
+    },
   };
 
   plugin.createYarrboard = function (hostname, username = "admin", password = "admin", require_login = false, use_ssl = false) {
@@ -97,12 +97,12 @@ module.exports = function (app) {
         else if (data.status == "success")
           app.setPluginStatus(`[${this.hostname}] ${data.message}`);
       }
-    }
+    };
 
     yb.onopen = function (event) {
       this.getConfig();
       this.startUpdatePoller(board.update_interval);
-    }
+    };
 
     yb.queueDeltasAndUpdates = function (data) {
 
@@ -200,7 +200,7 @@ module.exports = function (app) {
         if (data.hasOwnProperty("depickle_countdown"))
           this.bus.queueDelta(`${mainPath}.depickle_countdown`, Math.round(data.depickle_countdown / 1000));
       }
-    }
+    };
 
     yb.handleConfig = function (data) {
       this.config = data;
@@ -260,7 +260,7 @@ module.exports = function (app) {
 
       //actually send them off now.
       this.bus.sendUpdates();
-    }
+    };
 
     yb.handleUpdate = function (data) {
       if (!this.config)
@@ -283,14 +283,14 @@ module.exports = function (app) {
 
       //actually send them off now.
       this.bus.sendUpdates();
-    }
+    };
 
     yb.getMainBoardPath = function (data) {
       return `watermaker.${this.boardname}`;
-    }
+    };
 
     return yb;
-  }
+  };
 
   return plugin;
 };
