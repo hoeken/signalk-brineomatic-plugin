@@ -151,10 +151,10 @@ module.exports = function (app) {
           this.bus.queueDelta(`${mainPath}.brine_salinity`, data.brine_salinity);
 
         if (data.hasOwnProperty("filter_pressure"))
-          this.bus.queueDelta(`${mainPath}.filter_pressure`, data.filter_pressure * 6894.76);
+          this.bus.queueDelta(`${mainPath}.filter_pressure`, data.filter_pressure * 100000);
 
         if (data.hasOwnProperty("membrane_pressure"))
-          this.bus.queueDelta(`${mainPath}.membrane_pressure`, data.membrane_pressure * 6894.76);
+          this.bus.queueDelta(`${mainPath}.membrane_pressure`, data.membrane_pressure * 100000);
 
         if (data.hasOwnProperty("tank_level"))
           this.bus.queueDelta(`${mainPath}.tank_level`, data.tank_level);
@@ -175,28 +175,28 @@ module.exports = function (app) {
           this.bus.queueDelta(`${mainPath}.cooling_fan_on`, data.cooling_fan_on);
 
         if (data.hasOwnProperty("next_flush_countdown"))
-          this.bus.queueDelta(`${mainPath}.next_flush_countdown`, Math.round(data.next_flush_countdown / 1000000));
+          this.bus.queueDelta(`${mainPath}.next_flush_countdown`, Math.round(data.next_flush_countdown / 1000));
 
         if (data.hasOwnProperty("runtime_elapsed"))
-          this.bus.queueDelta(`${mainPath}.runtime_elapsed`, Math.round(data.runtime_elapsed / 1000000));
+          this.bus.queueDelta(`${mainPath}.runtime_elapsed`, Math.round(data.runtime_elapsed / 1000));
 
         if (data.hasOwnProperty("finish_countdown"))
-          this.bus.queueDelta(`${mainPath}.finish_countdown`, Math.round(data.finish_countdown / 1000000));
+          this.bus.queueDelta(`${mainPath}.finish_countdown`, Math.round(data.finish_countdown / 1000));
 
         if (data.hasOwnProperty("flush_elapsed"))
-          this.bus.queueDelta(`${mainPath}.flush_elapsed`, Math.round(data.flush_elapsed / 1000000));
+          this.bus.queueDelta(`${mainPath}.flush_elapsed`, Math.round(data.flush_elapsed / 1000));
         if (data.hasOwnProperty("flush_countdown"))
-          this.bus.queueDelta(`${mainPath}.flush_countdown`, Math.round(data.flush_countdown / 1000000));
+          this.bus.queueDelta(`${mainPath}.flush_countdown`, Math.round(data.flush_countdown / 1000));
 
         if (data.hasOwnProperty("pickle_elapsed"))
-          this.bus.queueDelta(`${mainPath}.pickle_elapsed`, Math.round(data.pickle_elapsed / 1000000));
+          this.bus.queueDelta(`${mainPath}.pickle_elapsed`, Math.round(data.pickle_elapsed / 1000));
         if (data.hasOwnProperty("pickle_countdown"))
-          this.bus.queueDelta(`${mainPath}.pickle_countdown`, Math.round(data.pickle_countdown / 1000000));
+          this.bus.queueDelta(`${mainPath}.pickle_countdown`, Math.round(data.pickle_countdown / 1000));
 
         if (data.hasOwnProperty("depickle_elapsed"))
-          this.bus.queueDelta(`${mainPath}.depickle_elapsed`, Math.round(data.depickle_elapsed / 1000000));
+          this.bus.queueDelta(`${mainPath}.depickle_elapsed`, Math.round(data.depickle_elapsed / 1000));
         if (data.hasOwnProperty("depickle_countdown"))
-          this.bus.queueDelta(`${mainPath}.depickle_countdown`, Math.round(data.depickle_countdown / 1000000));
+          this.bus.queueDelta(`${mainPath}.depickle_countdown`, Math.round(data.depickle_countdown / 1000));
       }
     }
 
