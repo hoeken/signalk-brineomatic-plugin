@@ -142,6 +142,8 @@ module.exports = function (app) {
 
         if (data.hasOwnProperty("volume"))
           this.bus.queueDelta(`${mainPath}.volume`, data.volume * 0.001);
+        if (data.hasOwnProperty("flush_volume"))
+          this.bus.queueDelta(`${mainPath}.flush_volume`, data.flush_volume * 0.001);
 
         if (data.hasOwnProperty("salinity"))
           this.bus.queueDelta(`${mainPath}.salinity`, data.salinity);
@@ -231,6 +233,7 @@ module.exports = function (app) {
       this.bus.queueMeta(`${mainPath}.brine_flowrate`, { units: "m3/s", description: "Brine output flowrate" });
       this.bus.queueMeta(`${mainPath}.total_flowrate`, { units: "m3/s", description: "Total output flowrate" });
       this.bus.queueMeta(`${mainPath}.volume`, { units: "m3", description: "Product output volume total (this cycle)" });
+      this.bus.queueMeta(`${mainPath}.flush_volume`, { units: "m3", description: "Flush volume total (this cycle)" });
       this.bus.queueMeta(`${mainPath}.salinity`, { units: "PPM", description: "Product output salinity (PPM)" });
       this.bus.queueMeta(`${mainPath}.product_salinity`, { units: "PPM", description: "Product output salinity (PPM)" });
       this.bus.queueMeta(`${mainPath}.brine_salinity`, { units: "PPM", description: "Brine output salinity (PPM)" });
