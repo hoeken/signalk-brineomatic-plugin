@@ -1,0 +1,7 @@
+# v1.3.0
+
+- add icon
+- add tests + fix any issues with sk store score
+- add reverse proxy for remote access
+- add screenshots
+- add zones and/or notifications?
