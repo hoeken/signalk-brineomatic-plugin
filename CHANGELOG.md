@@ -4,11 +4,15 @@ _2026-07-04_
 
 ### Added
 
-- Remote-access **reverse proxy**: each board's own web UI can be served on a dedicated local port so it's reachable remotely (e.g. over Tailscale to the SignalK host), even though the ESP32 board can't run a VPN itself. Opt-in per board via the new `enable_proxy` / `proxy_port` config fields.
-- Discoverable landing webapp (`public/`) in the SignalK webapp list: a single enabled board redirects straight to its UI, multiple boards render a picker grid with names and live connection status.
-- Metadata route `/plugins/signalk-brineomatic-plugin/boards` exposing the enabled boards and their proxy ports.
-- New reusable modules: [reverse-proxy.js](reverse-proxy.js) (project-agnostic HTTP + WebSocket transparent proxy) and [signalk-board-proxy.js](signalk-board-proxy.js) (Brineomatic-agnostic SignalK helper managing the proxies and `/boards` route), so sibling SignalK plugins that expose an ESP32 board's webapp can lift them in.
-- `http-proxy` dependency.
+- **Remote access to each board's web UI.** The ESP32 boards can't run a VPN themselves, so the plugin can now serve any board's own web interface through the SignalK host, making it reachable remotely (e.g. over Tailscale). Enable it per board with the new `enable_proxy` and `proxy_port` settings — each enabled board gets its own dedicated port, and both HTTP and the board's live WebSocket are proxied transparently.
+- **Landing page in the SignalK webapp list.** With one board proxied it opens straight to that board's UI; with several it shows a picker grid listing each board by name with live connection status.
+- **Boards metadata endpoint** at `/plugins/signalk-brineomatic-plugin/boards`, listing the enabled boards and their proxy ports for anything that wants to discover them programmatically.
+- Plugin logo and display name in the SignalK app store and webapp list.
+- Automated testing and releases: a unit-test suite (`npm test` / `npm run test:coverage`) covering the plugin's modules, CI that runs it on every push and pull request, and tag-driven publishing to npm.
+
+### Fixed
+
+- The plugin no longer fails to start when configured entirely from schema defaults (no boards explicitly added yet). Previously startup could throw before any board was configured.
 
 # v1.2.0
 
@@ -16,21 +20,17 @@ _2026-05-28_
 
 ### Added
 
-- New [signalk-bus.js](signalk-bus.js) helper that encapsulates SignalK delta/meta queuing, separating the bus plumbing from the board-specific logic in [index.js](index.js).
-- `flush_volume` path (`watermaker.{boardname}.flush_volume`, units `m³`) reporting the volume of water used in the current flush cycle.
-- ESLint and Prettier configuration ([eslint.config.mjs](eslint.config.mjs), [.prettierrc.json](.prettierrc.json), [.prettierignore](.prettierignore)) along with `lint`, `lint:fix`, `format`, and `format:check` npm scripts.
+- New `flush_volume` path (`watermaker.{boardname}.flush_volume`, m³) reporting how much water the current flush cycle has used.
 
 ### Changed
 
-- `index.js` rewritten to route all SignalK writes through the new `SignalKBus` helper.
-- Per-board `update_interval` is now threaded through `createYarrboard` onto the client instance, so the update poller uses the configured interval instead of a stale outer reference.
-- Codebase reformatted to match the new Prettier/ESLint rules.
+- Each board's configured `update_interval` is now honored correctly by the polling loop (previously a single interval could be applied across boards).
+- Added lint/format tooling (ESLint + Prettier) with `lint`, `lint:fix`, `format`, and `format:check` scripts for anyone working on the plugin.
 
 ### Fixed
 
-- Pressure conversions for `filter_pressure` and `membrane_pressure` now use the correct bar→Pa factor (`×100000`) instead of the previous psi→Pa factor (`×6894.76`).
-- Countdown/elapsed time fields (`next_flush_countdown`, `runtime_elapsed`, `finish_countdown`, `flush_elapsed`, `flush_countdown`, `pickle_elapsed`, `pickle_countdown`, `depickle_elapsed`, `depickle_countdown`) now convert from milliseconds (`÷1000`) to seconds rather than from microseconds (`÷1000000`).
-- Replaced `data.hasOwnProperty(...)` calls with `Object.hasOwn(...)` and tidied up loop variable declarations and unused parameters to clear lint errors.
+- **Membrane and filter pressures** now report correct values. They were being converted using a psi→Pa factor instead of bar→Pa, so readings came out far too high.
+- **Countdown and elapsed timers** (`flush`, `run`, `pickle`, `depickle`, `next_flush`, and the rest) now report correct seconds. They were being divided as if the source were microseconds rather than milliseconds, throwing every timer off by a factor of 1000.
 
 # v1.1.0
 
@@ -38,29 +38,29 @@ _2025-11-16_
 
 ### Added
 
-- Support for the Rev B Brineomatic board's expanded telemetry:
-  - `product_flowrate`, `brine_flowrate`, `total_flowrate` (m³/s)
-  - `product_salinity`, `brine_salinity` (mg/L)
-- Meta entries describing the new flowrate and salinity paths.
+- Support for the **Rev B Brineomatic board's** expanded telemetry, with units and descriptions published for each:
+  - Product, brine, and total flow rates — `product_flowrate`, `brine_flowrate`, `total_flowrate` (m³/s)
+  - Product and brine salinity — `product_salinity`, `brine_salinity` (mg/L)
 
 ### Changed
 
-- Board supply voltage meta moved from `board.uuid` to the correct `board.bus_voltage` path.
-- The legacy `flowrate` and `salinity` paths are retained as aliases of `product_flowrate` and `product_salinity` for backwards compatibility.
+- Board supply voltage now reports on the correct `board.bus_voltage` path (it was previously attached to `board.uuid`).
+- The original `flowrate` and `salinity` paths are kept as aliases for `product_flowrate` and `product_salinity`, so existing dashboards and integrations keep working.
 
 # v1.0.0
 
 _2025-03-29_
 
+Initial release of the SignalK Brineomatic plugin, adapted from the Yarrboard SignalK plugin.
+
 ### Added
 
-- Initial release of the SignalK Brineomatic plugin, forked from the Yarrboard SignalK plugin.
-- Multi-board support via the plugin configuration schema (`host`, `use_ssl`, `update_interval`, `require_login`, `username`, `password`).
-- WebSocket connection to Brineomatic controllers using `yarrboard-client`, with automatic config and update polling.
-- SignalK paths under `watermaker.{boardname}.*` for:
-  - Board info: `firmware_version`, `hardware_version`, `hostname`, `name`, `uptime`, `use_ssl`, `uuid`.
-  - Cycle status and results: `status`, `run_result`, `flush_result`, `pickle_result`, `depickle_result`.
-  - Sensors: `motor_temperature`, `water_temperature`, `flowrate`, `volume`, `salinity`, `filter_pressure`, `membrane_pressure`, `tank_level`.
-  - Actuator states: `boost_pump_on`, `high_pressure_pump_on`, `diverter_valve_open`, `flush_valve_open`, `cooling_fan_on`.
-  - Timers: `next_flush_countdown`, `runtime_elapsed`, `finish_countdown`, `flush_elapsed`, `flush_countdown`, `pickle_elapsed`, `pickle_countdown`, `depickle_elapsed`, `depickle_countdown`.
-- SignalK meta (units and descriptions) published for all paths.
+- **Multi-board support.** Connect to any number of Brineomatic controllers, each configured independently: `host`, `use_ssl`, `update_interval`, and optional login (`require_login`, `username`, `password`).
+- **WebSocket connection** to each controller via `yarrboard-client`, with automatic config and telemetry polling.
+- Live data published under `watermaker.{boardname}.*`:
+  - **Board info:** `firmware_version`, `hardware_version`, `hostname`, `name`, `uptime`, `use_ssl`, `uuid`.
+  - **Cycle status and results:** `status`, plus `run_result`, `flush_result`, `pickle_result`, `depickle_result`.
+  - **Sensors:** `motor_temperature`, `water_temperature`, `flowrate`, `volume`, `salinity`, `filter_pressure`, `membrane_pressure`, `tank_level`.
+  - **Actuator states:** `boost_pump_on`, `high_pressure_pump_on`, `diverter_valve_open`, `flush_valve_open`, `cooling_fan_on`.
+  - **Timers:** `next_flush_countdown`, `runtime_elapsed`, `finish_countdown`, `flush_elapsed`, `flush_countdown`, `pickle_elapsed`, `pickle_countdown`, `depickle_elapsed`, `depickle_countdown`.
+- Units and descriptions (SignalK meta) published for every path.
