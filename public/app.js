@@ -71,10 +71,10 @@ async function main() {
     return;
   }
 
-  // Single board → go straight to it (full-page redirect avoids any iframe /
-  // X-Frame-Options issues). Multiple → show a picker grid.
+  // Single board → go straight to it. location.assign navigates this frame in
+  // place and keeps a history entry, so Back returns here. Multiple → picker grid.
   if (boards.length === 1) {
-    location.replace(boardUrl(boards[0]));
+    location.assign(boardUrl(boards[0]));
     return;
   }
 
