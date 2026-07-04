@@ -99,3 +99,28 @@ The rest of the data is located at watermaker.{boardname}.*:
 | `watermaker.{boardname}.pickle_countdown`                 | s      | Time until pickle cycle completes                |
 | `watermaker.{boardname}.depickle_elapsed`                 | s      | Time elapsed for depickle cycle                  |
 | `watermaker.{boardname}.depickle_countdown`               | s      | Time until depickle cycle completes              |
+
+## Development
+
+Install dependencies and run the checks:
+
+```sh
+npm install
+npm test          # run the test suite
+npm run test:coverage   # run tests with a coverage report
+npm run lint      # eslint
+```
+
+The tests use Node's built-in test runner (`node:test`, Node 18+) — no extra
+test dependencies are needed. They cover:
+
+- **`signalk-bus.js`** — delta/meta queuing, batching, de-duplication.
+- **`index.js`** — the plugin schema, the `/boards` route, the yarrboard-client
+  message routing, and the unit conversions applied to each update (°C→K,
+  mL/h→m³/s, bar→Pa, ms→s, …). No board connection is opened.
+- **`signalk-board-proxy.js`** — descriptor filtering (enable/port/duplicate),
+  target URL building, and the `/boards` metadata. `ReverseProxy` is stubbed so
+  no ports are opened.
+- **`reverse-proxy.js`** — real HTTP and WebSocket proxying over loopback
+  sockets, header stripping, `502` on an unreachable upstream, and `EADDRINUSE`
+  handling.

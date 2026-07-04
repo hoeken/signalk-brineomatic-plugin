@@ -4,7 +4,8 @@
   "description": "SignalK plugin for the Brineomatic watermaker controller.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test 'test/**/*.test.js'",
+    "test:coverage": "node --test --experimental-test-coverage 'test/**/*.test.js'",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "format": "eslint --fix . && prettier --write .",
