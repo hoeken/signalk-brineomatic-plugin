@@ -17,7 +17,10 @@ module.exports = function (app) {
 
     const descriptors = [];
 
-    for (const board of options.config) {
+    // options.config is undefined when SignalK starts the plugin with only
+    // schema defaults applied (the config array has no default), so guard the
+    // loop rather than let it throw before start() completes.
+    for (const board of options.config || []) {
       let brineomatic = plugin.createYarrboard(
         board.host.trim(),
         board.username,

@@ -259,3 +259,19 @@ test("plugin start/stop lifecycle", () => {
   assert.equal(plugin.connections.length, 0);
   assert.equal(plugin.boardProxies, null);
 });
+
+test("start() completes with schema defaults (no config array)", () => {
+  const app = createFakeApp();
+  const plugin = createPlugin(app);
+
+  // SignalK scores the plugin by starting it with only schema defaults applied.
+  // The config array has no default, so options.config is undefined — start()
+  // must complete instead of throwing "config is not iterable".
+  assert.doesNotThrow(() => plugin.start({}));
+
+  assert.equal(plugin.connections.length, 0);
+  assert.ok(plugin.boardProxies, "a BoardProxyManager is still created");
+  assert.deepEqual(plugin.boardProxies.boards(), []);
+
+  plugin.stop();
+});

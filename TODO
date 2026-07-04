@@ -1,6 +1,4 @@
 # v1.3.0
 
-- [x] add reverse proxy for remote access
-- add tests + fix any issues with sk store score
+- add CI / publish
 - add screenshots
-- add zones and/or notifications?
