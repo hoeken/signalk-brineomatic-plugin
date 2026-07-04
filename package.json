@@ -9,8 +9,8 @@
     "docs/screenshots/"
   ],
   "scripts": {
-    "test": "node --test 'test/**/*.test.js'",
-    "test:coverage": "node --test --experimental-test-coverage 'test/**/*.test.js'",
+    "test": "node --test test/*.test.js",
+    "test:coverage": "node --test --experimental-test-coverage test/*.test.js",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "format": "eslint --fix . && prettier --write .",
