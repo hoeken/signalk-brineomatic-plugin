@@ -17,6 +17,14 @@ board, plus a discoverable landing page in the SignalK webapp list.
 - **Transparent proxy** (not a native re-implementation of the UI). The plugin
   already publishes `watermaker.*` data to SignalK; the proxy is only about
   serving the board's interactive webapp remotely.
+- **Reusable across SignalK plugins.** This proxy system is intended to be
+  re-used in **other SignalK plugins** that need to expose an **ESP32 board's
+  own webapp** remotely (same problem: the board can't run Tailscale). It is
+  therefore written to be **SignalK- and ESP32-aware but Brineomatic-agnostic** —
+  **no** coupling to `yarrboard-client`, `watermaker.*`, or this plugin's other
+  modules. The only things a consuming plugin should have to supply are its own
+  board list, its own connection-status getter, and its own branding/copy. See
+  **Reusability & module boundary** below.
 
 ## Architecture
 
@@ -38,16 +46,55 @@ Note there are **two independent connections** to each board: the plugin's
 existing `yarrboard-client` polling WS ([index.js:86-107](index.js#L86-L107)) and
 the browser's proxied WS. See Risks re: the ESP32 connection-slot limit.
 
+## Reusability & module boundary
+
+The reuse target is **another SignalK plugin that proxies to an ESP32 board's
+webapp**. So the system is split into three layers — the first two are the
+reusable, Brineomatic-agnostic parts a consuming plugin lifts in; the third is
+this plugin's specific wiring.
+
+- **Layer 1 — pure proxy core (`reverse-proxy.js`), maximally self-contained:**
+  - Only external dependency is `http-proxy`; only Node built-in is `http`. No
+    imports from `index.js`, `signalk-bus.js`, `yarrboard-client`, or SignalK.
+  - Exports a `ReverseProxy` class that proxies HTTP **and** WebSocket traffic
+    from one local port to one upstream origin, with a `start()`/`close()`
+    lifecycle. Takes a plain options object; reports via injected `onError`/`log`
+    callbacks rather than reaching back into the host.
+  - Fully generic terms (`target`, `port`, "upstream") — nothing reads as
+    watermaker- or SignalK-specific.
+
+- **Layer 2 — SignalK integration helper (Brineomatic-agnostic):** the part that
+  makes it a *drop-in for SignalK plugins*. Manages N `ReverseProxy` instances
+  for a plugin, registers the `/boards` metadata route, and serves the discovery/
+  landing `public/`. It is **decoupled from `yarrboard-client`**: the consuming
+  plugin passes in a board descriptor list — `{ host, use_ssl, proxy_port,
+  enable_proxy, name, status() }` — and this layer needs nothing else. (Consider
+  factoring this into its own module, e.g. `signalk-board-proxy.js`, or even a
+  standalone npm package, so sibling plugins can `require` it instead of copying.)
+
+- **Layer 3 — this plugin's wiring (Brineomatic-specific, stays here):**
+  - `index.js` — the plugin schema, and building the board descriptors above from
+    each `YarrboardClient` (`hostname`, `config.name`, `status()`, `use_ssl`),
+    plus wiring `onError` → `app.setPluginError`.
+  - `public/` copy, icon, and branding. The landing page **markup/logic is
+    reusable** (Layer 2); only the text/icon/title here are Brineomatic-specific.
+
+**Reuse checklist (in another SignalK plugin):** copy `reverse-proxy.js` (Layer 1)
+and the Layer 2 helper + `public/`, add the `http-proxy` dependency, then feed the
+helper your own board list and status getter and swap the landing-page branding.
+Nothing from `yarrboard-client`, `signalk-bus.js`, or `watermaker.*` is required.
+
 ## Files to create / modify
 
 | File | Change |
 | --- | --- |
-| `reverse-proxy.js` (new) | Encapsulates proxy server lifecycle (mirrors `signalk-bus.js` module style). |
-| `index.js` | Schema fields; start/stop proxy lifecycle; `registerWithRouter` for `/boards`. |
-| `public/index.html` (new) | Landing page shell. |
-| `public/app.js` (new) | Fetch `/boards`, redirect (single) or render grid (multiple). |
-| `public/style.css` (new) | Grid/card styling. |
-| `public/icon.svg` (new) | Watermaker icon (also satisfies the "add icon" TODO). |
+| `reverse-proxy.js` (new) | **Layer 1 — pure proxy core.** Server lifecycle, no SignalK/Brineomatic coupling (see Reusability & module boundary). |
+| `signalk-board-proxy.js` (new) | **Layer 2 — reusable SignalK helper.** Manages N proxies, the `/boards` route, and serving `public/`; consumes a plain board-descriptor list, Brineomatic-agnostic. |
+| `index.js` | **Layer 3 (this plugin).** Schema fields; build board descriptors from `YarrboardClient`s; hand them to the Layer 2 helper in start/stop. |
+| `public/index.html` (new) | Landing page shell (reusable markup; Brineomatic title/branding). |
+| `public/app.js` (new) | Fetch `/boards`, redirect (single) or render grid (multiple) — reusable as-is. |
+| `public/style.css` (new) | Grid/card styling (reusable). |
+| `public/icon.svg` (new) | Watermaker icon — the one clearly project-specific asset (also satisfies the "add icon" TODO). |
 | `package.json` | Add `http-proxy` dependency; add `signalk-webapp` keyword. |
 | `README.md` | Document proxy config + Tailscale remote-access usage. |
 | `CHANGELOG.md` / `TODO` | Note feature; check off items on completion. |
@@ -60,31 +107,50 @@ Add `http-proxy` (lighter than `http-proxy-middleware`, gives direct control of
 the `upgrade` event; WS-upgrade handling in a SignalK plugin is confirmed
 workable).
 
+The core is **self-contained**: it takes a plain options object, derives nothing
+from any project type, and reports errors/logs through injected callbacks instead
+of touching the host (`app.setPluginError`). Host-specific concerns — building the
+`target` from `board.host`/`use_ssl`, choosing the port, formatting error
+messages — stay in `index.js` (step 3).
+
 ```js
+// reverse-proxy.js — project-agnostic HTTP + WebSocket transparent reverse
+// proxy. No SignalK / yarrboard-client / Brineomatic dependencies; copy this
+// file into any Node project unchanged. Only deps: http (built-in), http-proxy.
+
 const http = require("http");
 const httpProxy = require("http-proxy");
 
-class BoardProxy {
-  constructor(app, board, port) {
-    this.app = app;
-    this.board = board;      // {host, use_ssl, ...}
-    this.port = port;
+class ReverseProxy {
+  /**
+   * @param {object} opts
+   * @param {string}  opts.target     Upstream origin to proxy to, e.g. "http://192.168.1.50".
+   * @param {number}  opts.port       Local port to listen on.
+   * @param {string}  [opts.bind]     Bind address (default "0.0.0.0").
+   * @param {boolean} [opts.secure]   Verify upstream TLS cert (default false — self-signed OK).
+   * @param {(msg: string) => void} [opts.onError]  Called on listen/proxy errors (e.g. EADDRINUSE).
+   * @param {(msg: string) => void} [opts.log]      Optional debug logger.
+   */
+  constructor(opts) {
+    this.opts = opts;
     this.server = null;
     this.proxy = null;
   }
 
   start() {
-    const target = `${this.board.use_ssl ? "https" : "http"}://${this.board.host.trim()}`;
+    const { target, port, bind = "0.0.0.0", secure = false, onError, log } = this.opts;
+    if (log) log(`starting proxy on ${bind}:${port} -> ${target}`);
+
     this.proxy = httpProxy.createProxyServer({
       target,
       ws: true,
       changeOrigin: true,
-      secure: false, // ESP32 SSL is typically self-signed
+      secure,
     });
     this.proxy.on("error", (err, req, res) => {
       if (res && res.writeHead && !res.headersSent) {
         res.writeHead(502, { "Content-Type": "text/plain" });
-        res.end(`Brineomatic board unreachable: ${err.message}`);
+        res.end(`Upstream unreachable: ${err.message}`);
       } else if (res && res.destroy) {
         res.destroy(); // socket (ws upgrade path)
       }
@@ -93,10 +159,10 @@ class BoardProxy {
     this.server = http.createServer((req, res) => this.proxy.web(req, res));
     this.server.on("upgrade", (req, socket, head) => this.proxy.ws(req, socket, head));
     this.server.on("error", (err) => {
-      // e.g. EADDRINUSE — surface, don't crash the plugin
-      this.app.setPluginError(`[${this.board.host}] proxy port ${this.port}: ${err.message}`);
+      // e.g. EADDRINUSE — surface via callback, never crash the host process.
+      if (onError) onError(`proxy port ${port}: ${err.message}`);
     });
-    this.server.listen(this.port);
+    this.server.listen(port, bind);
   }
 
   close() {
@@ -107,7 +173,7 @@ class BoardProxy {
   }
 }
 
-module.exports = { BoardProxy };
+module.exports = { ReverseProxy };
 ```
 
 ### 2. Schema (`index.js` `plugin.schema`)
@@ -123,34 +189,71 @@ Add per-board fields (keep them optional so existing configs keep working):
 
 No `bind_address` and no proxy-auth fields — see resolved questions below.
 
-### 3. Lifecycle (`index.js` `plugin.start` / `plugin.stop`)
+### 3. Lifecycle via the Layer 2 helper (`signalk-board-proxy.js`)
 
-- `start()`: after creating each `YarrboardClient`, if `board.enable_proxy`,
-  construct a `BoardProxy(app, board, board.proxy_port)` and `.start()` it. Store
-  in `plugin.proxies = []`. Guard against duplicate ports (log + skip).
-- `stop()`: in addition to closing connections, `for (const p of plugin.proxies) p.close()` and reset `plugin.proxies = []`.
+The lifecycle and the `/boards` endpoint live in the **reusable** Layer 2 helper,
+so a consuming plugin gets them for free. The helper is fed a **board-descriptor
+list** and a `status()` getter — it never touches `yarrboard-client`:
 
-### 4. Metadata endpoint (`index.js` `plugin.registerWithRouter`)
+```js
+// signalk-board-proxy.js — reusable SignalK helper (Brineomatic-agnostic)
+const { ReverseProxy } = require("./reverse-proxy");
+
+class BoardProxyManager {
+  constructor(app) { this.app = app; this.proxies = []; }
+
+  // descriptors: [{ host, use_ssl, proxy_port, enable_proxy, name, status }]
+  start(descriptors) {
+    const seen = new Set();
+    for (const b of descriptors) {
+      if (!b.enable_proxy) continue;
+      if (seen.has(b.proxy_port)) { this.app.error(`duplicate proxy_port ${b.proxy_port}, skipping ${b.host}`); continue; }
+      seen.add(b.proxy_port);
+      const proxy = new ReverseProxy({
+        target: `${b.use_ssl ? "https" : "http"}://${b.host.trim()}`,
+        port: b.proxy_port,
+        onError: (msg) => this.app.setPluginError(`[${b.host}] ${msg}`),
+        log: (msg) => this.app.debug(msg),
+      });
+      proxy.start();
+      this.proxies.push({ proxy, descriptor: b });
+    }
+  }
+
+  stop() { for (const p of this.proxies) p.proxy.close(); this.proxies = []; }
+
+  // registerWithRouter delegate — see step 4
+  boards() {
+    return this.proxies.map(({ descriptor: b }) => ({
+      host: b.host, name: b.name || b.host, proxy_port: b.proxy_port, state: b.status(),
+    }));
+  }
+}
+
+module.exports = { BoardProxyManager };
+```
+
+`index.js` (Layer 3) only builds the descriptors from its `YarrboardClient`s and
+drives the manager:
+
+- `start()`: build `descriptors` (`host`, `use_ssl`, `proxy_port`, `enable_proxy`,
+  `name` from `config.name`, `status: () => yb.status()`), then
+  `plugin.boardProxies = new BoardProxyManager(app); plugin.boardProxies.start(descriptors)`.
+- `stop()`: `plugin.boardProxies && plugin.boardProxies.stop()`.
+
+### 4. Metadata endpoint (`plugin.registerWithRouter`)
+
+Also owned by the Layer 2 helper — `index.js` just delegates:
 
 ```js
 plugin.registerWithRouter = function (router) {
-  router.get("/boards", (req, res) => {
-    res.json(plugin.connections
-      .filter((yb) => yb.enable_proxy)      // stash enable_proxy/proxy_port on yb at create time
-      .map((yb) => ({
-        hostname: yb.hostname,
-        boardname: yb.boardname,
-        name: yb.config && yb.config.name ? yb.config.name : yb.boardname,
-        proxy_port: yb.proxy_port,
-        state: yb.status(),                 // "CONNECTED" / "RETRYING" / ...
-      })));
-  });
+  router.get("/boards", (req, res) => res.json(plugin.boardProxies.boards()));
 };
 ```
 
 Served at `/plugins/signalk-brineomatic-plugin/boards`, **same origin** as the
-webapp → no CORS needed. (Stash `enable_proxy` / `proxy_port` on the `yb` object
-in `createYarrboard`, alongside the existing `yb.bus` / `yb.update_interval`.)
+webapp → no CORS needed. A consuming plugin gets the identical route at its own
+plugin id with no changes.
 
 ### 5. Landing webapp (`public/`)
 
@@ -158,7 +261,9 @@ in `createYarrboard`, alongside the existing `yb.bus` / `yb.update_interval`.)
   it. Confirm during impl how the combined plugin+webapp `public/` dir is served
   and at what URL (SignalK webapp convention).
 - `app.js` logic:
-  1. `fetch('/plugins/signalk-brineomatic-plugin/boards')`.
+  1. `fetch('/plugins/signalk-brineomatic-plugin/boards')`. **For reuse:** keep
+     the plugin id in a single `const PLUGIN_ID = 'signalk-brineomatic-plugin'` at
+     the top of `app.js` — the one string a consuming plugin edits here.
   2. Build each URL as `` `${location.protocol}//${location.hostname}:${port}/` ``
      (reuse the current hostname — works for Tailscale, LAN, mDNS alike; only the
      port changes).
@@ -200,6 +305,13 @@ in `createYarrboard`, alongside the existing `yb.bus` / `yb.update_interval`.)
    `boardname` (`hostname.split(".")[0]`), `status()` (`IDLE`/`CONNECTING`/
    `CONNECTED`/`RETRYING`/`FAILED`), and `config.name`; `/boards` needs no schema
    `name` field (falls back to `boardname` while offline).
+7. **Reusability boundary** — the true reuse target is **other SignalK plugins
+   proxying to ESP32-board webapps**. The pure proxy core (`reverse-proxy.js`) is
+   project-agnostic; the SignalK integration helper is SignalK/ESP32-aware but
+   **Brineomatic-agnostic** — decoupled from `yarrboard-client` by taking a plain
+   board-descriptor list + `status()` getter. Only this plugin's schema wiring and
+   landing-page branding stay Brineomatic-specific. See Reusability & module
+   boundary.
 
 ## Test-only risk (not a decision)
 
