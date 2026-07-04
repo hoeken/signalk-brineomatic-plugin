@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { SignalKBus } = require("../signalk-bus");
+const { SignalKBus } = require("../src/signalk-bus");
 const { createFakeApp } = require("./helpers");
 
 test("SignalKBus", async (t) => {

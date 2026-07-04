@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const createPlugin = require("../index");
+const createPlugin = require("../src/index");
 const { createFakeApp, collectDeltas, collectMetas } = require("./helpers");
 
 // Assert two numbers are equal within a small tolerance (unit conversions go

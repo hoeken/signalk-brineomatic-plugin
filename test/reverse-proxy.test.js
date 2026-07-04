@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const http = require("node:http");
 const { server: WebSocketServer, w3cwebsocket: W3CWebSocket } = require("websocket");
-const { ReverseProxy } = require("../reverse-proxy");
+const { ReverseProxy } = require("../src/reverse-proxy");
 
 // Bind a server to an ephemeral port on loopback and resolve with the port.
 function listen(server, port = 0) {

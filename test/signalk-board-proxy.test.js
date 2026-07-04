@@ -5,7 +5,7 @@ const { createFakeApp } = require("./helpers");
 // Replace ReverseProxy with a lightweight fake BEFORE loading the module under
 // test, so start() never opens a real TCP port. node --test runs each test file
 // in its own process, so this require.cache surgery cannot leak into other files.
-const reverseProxyPath = require.resolve("../reverse-proxy");
+const reverseProxyPath = require.resolve("../src/reverse-proxy");
 const created = [];
 class FakeReverseProxy {
   constructor(opts) {
@@ -30,7 +30,7 @@ require.cache[reverseProxyPath] = {
   exports: { ReverseProxy: FakeReverseProxy },
 };
 
-const { BoardProxyManager } = require("../signalk-board-proxy");
+const { BoardProxyManager } = require("../src/signalk-board-proxy");
 
 test("BoardProxyManager", async (t) => {
   await t.test("only starts proxies for enabled descriptors with a unique port", () => {
