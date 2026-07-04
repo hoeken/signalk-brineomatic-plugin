@@ -1,0 +1,149 @@
+:root {
+  --bg: #0e1726;
+  --card: #16233a;
+  --card-hover: #1d2f4d;
+  --border: #294066;
+  --text: #e6edf7;
+  --muted: #93a4bd;
+  --accent: #35a0e0;
+  --ok: #3fb950;
+  --warn: #d29922;
+  --bad: #f0603e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 3rem 1.25rem 4rem;
+}
+
+.head {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+}
+
+.head h1 {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 1.75rem;
+}
+
+.sub {
+  margin: 0;
+  color: var(--muted);
+}
+
+.status {
+  text-align: center;
+  color: var(--muted);
+  padding: 2rem 0;
+}
+
+.status.error {
+  color: var(--bad);
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1rem 1.1rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: inherit;
+  text-decoration: none;
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.card:hover {
+  background: var(--card-hover);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.card .icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+  flex: 0 0 auto;
+}
+
+.card .info {
+  min-width: 0;
+}
+
+.card .name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card .host {
+  font-size: 0.85rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card .state {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex: 0 0 auto;
+}
+
+.dot.ok {
+  background: var(--ok);
+}
+
+.dot.warn {
+  background: var(--warn);
+}
+
+.dot.bad {
+  background: var(--bad);
+}

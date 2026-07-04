@@ -1,5 +1,6 @@
 const YarrboardClient = require("yarrboard-client");
 const { SignalKBus } = require("./signalk-bus.js");
+const { BoardProxyManager } = require("./signalk-board-proxy.js");
 
 module.exports = function (app) {
   var plugin = {};
@@ -14,6 +15,8 @@ module.exports = function (app) {
   plugin.start = function (options, _restartPlugin) {
     app.debug(`YarrboardClient.version: ${YarrboardClient.version}`);
 
+    const descriptors = [];
+
     for (const board of options.config) {
       let brineomatic = plugin.createYarrboard(
         board.host.trim(),
@@ -26,7 +29,21 @@ module.exports = function (app) {
       brineomatic.start();
 
       plugin.connections.push(brineomatic);
+
+      // Build a Brineomatic-agnostic descriptor for the reusable proxy helper.
+      // name/status are getters so the landing page reflects live board state.
+      descriptors.push({
+        host: brineomatic.hostname,
+        use_ssl: board.use_ssl,
+        proxy_port: board.proxy_port,
+        enable_proxy: board.enable_proxy,
+        name: () => (brineomatic.config && brineomatic.config.name) || brineomatic.boardname,
+        status: () => brineomatic.status(),
+      });
     }
+
+    plugin.boardProxies = new BoardProxyManager(app);
+    plugin.boardProxies.start(descriptors);
   };
 
   plugin.stop = function () {
@@ -35,6 +52,19 @@ module.exports = function (app) {
     for (const yb of plugin.connections)
       yb.close();
     plugin.connections = [];
+
+    if (plugin.boardProxies) {
+      plugin.boardProxies.stop();
+      plugin.boardProxies = null;
+    }
+  };
+
+  // Metadata endpoint for the landing webapp; served at
+  // /plugins/signalk-brineomatic-plugin/boards (same origin — no CORS).
+  plugin.registerWithRouter = function (router) {
+    router.get("/boards", (req, res) =>
+      res.json(plugin.boardProxies ? plugin.boardProxies.boards() : []),
+    );
   };
 
   plugin.schema = {
@@ -76,6 +106,20 @@ module.exports = function (app) {
               type: "string",
               title: "Password",
               default: "admin",
+            },
+            enable_proxy: {
+              type: "boolean",
+              title: "Enable remote-access proxy?",
+              description:
+                "Serve this board's web UI on a local port so it can be reached remotely (e.g. over Tailscale). Opt-in — nothing is exposed until you tick this. Note: the port bypasses SignalK authentication and is reachable on the boat LAN too.",
+              default: false,
+            },
+            proxy_port: {
+              type: "number",
+              title: "Proxy port",
+              description:
+                "Local port this board's web UI is served on when the proxy is enabled. Pick a unique, stable port per board (e.g. 3200, 3201, …); the URL you bookmark depends on it.",
+              default: 3200,
             },
           },
         },

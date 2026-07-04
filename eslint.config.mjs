@@ -43,4 +43,12 @@ export default [
       "no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
     },
   },
+  {
+    // Browser-side landing page served from public/.
+    files: ["public/**/*.js"],
+    languageOptions: {
+      sourceType: "script",
+      globals: { ...globals.browser },
+    },
+  },
 ];

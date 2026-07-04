@@ -14,6 +14,37 @@ Add your board hosts and configure login info in the plugin preferences. Per-boa
 | `require_login`   | `false`            | Whether the board requires authentication  |
 | `username`        | `admin`            | Username (if login required)               |
 | `password`        | `admin`            | Password (if login required)               |
+| `enable_proxy`    | `false`            | Serve this board's web UI on a local port for remote access (see below) |
+| `proxy_port`      | `3200`             | Local port for this board's proxy (unique per board) |
+
+## Remote access (reverse proxy)
+
+The Brineomatic board is an ESP32 on the boat LAN and can't run Tailscale itself,
+so its web UI isn't reachable when you're away from the boat. This plugin can
+stand up a transparent HTTP + WebSocket reverse proxy to each board so you can
+reach the board's own UI remotely — e.g. over [Tailscale](https://tailscale.com/)
+to the SignalK host.
+
+**Setup**
+
+1. In the plugin config, tick **Enable remote-access proxy?** for each board you
+   want to reach, and give each one a unique **Proxy port** (e.g. `3200`, `3201`,
+   …). Keep the port stable — it's part of the URL you'll bookmark.
+2. Open the **Brineomatic** entry in the SignalK webapp list. With one board
+   enabled it redirects straight to that board's UI; with several it shows a
+   picker with each board's name and connection status.
+3. Remotely, browse to the SignalK host over your VPN/Tailscale hostname; the
+   proxy reuses whatever host you reached the page on and only swaps the port, so
+   the same link works over Tailscale, LAN, or mDNS. Each board's UI is at
+   `http://<sk-host>:<proxy_port>/`.
+
+**Security notes**
+
+- The proxy is **opt-in** — no port opens until you enable it for a board.
+- The proxy port binds to all interfaces, so it's reachable over your VPN **and**
+  the boat LAN, and it **bypasses SignalK's own authentication**. The board's own
+  `require_login` (if enabled) still applies through the proxy. Treat your tailnet
+  / LAN as the trust boundary and only enable the proxy on networks you trust.
 
 ## SignalK Path Info
 

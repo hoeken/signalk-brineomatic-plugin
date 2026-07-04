@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-07-04
+
+### Added
+
+- Remote-access **reverse proxy**: each board's own web UI can be served on a dedicated local port so it's reachable remotely (e.g. over Tailscale to the SignalK host), even though the ESP32 board can't run a VPN itself. Opt-in per board via the new `enable_proxy` / `proxy_port` config fields.
+- Discoverable landing webapp (`public/`) in the SignalK webapp list: a single enabled board redirects straight to its UI, multiple boards render a picker grid with names and live connection status.
+- Metadata route `/plugins/signalk-brineomatic-plugin/boards` exposing the enabled boards and their proxy ports.
+- New reusable modules: [reverse-proxy.js](reverse-proxy.js) (project-agnostic HTTP + WebSocket transparent proxy) and [signalk-board-proxy.js](signalk-board-proxy.js) (Brineomatic-agnostic SignalK helper managing the proxies and `/boards` route), so sibling SignalK plugins that expose an ESP32 board's webapp can lift them in.
+- `http-proxy` dependency.
+
 ## [1.2.0] - 2026-05-28
 
 ### Added
