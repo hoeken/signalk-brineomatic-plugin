@@ -1,8 +1,6 @@
-# Changelog
+# v1.3.0
 
-All notable changes to this project are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [1.3.0] - 2026-07-04
+_2026-07-04_
 
 ### Added
 
@@ -12,7 +10,9 @@ All notable changes to this project are documented here. The format is based on 
 - New reusable modules: [reverse-proxy.js](reverse-proxy.js) (project-agnostic HTTP + WebSocket transparent proxy) and [signalk-board-proxy.js](signalk-board-proxy.js) (Brineomatic-agnostic SignalK helper managing the proxies and `/boards` route), so sibling SignalK plugins that expose an ESP32 board's webapp can lift them in.
 - `http-proxy` dependency.
 
-## [1.2.0] - 2026-05-28
+# v1.2.0
+
+_2026-05-28_
 
 ### Added
 
@@ -32,7 +32,9 @@ All notable changes to this project are documented here. The format is based on 
 - Countdown/elapsed time fields (`next_flush_countdown`, `runtime_elapsed`, `finish_countdown`, `flush_elapsed`, `flush_countdown`, `pickle_elapsed`, `pickle_countdown`, `depickle_elapsed`, `depickle_countdown`) now convert from milliseconds (`÷1000`) to seconds rather than from microseconds (`÷1000000`).
 - Replaced `data.hasOwnProperty(...)` calls with `Object.hasOwn(...)` and tidied up loop variable declarations and unused parameters to clear lint errors.
 
-## [1.1.0] - 2025-11-16
+# v1.1.0
+
+_2025-11-16_
 
 ### Added
 
@@ -46,7 +48,9 @@ All notable changes to this project are documented here. The format is based on 
 - Board supply voltage meta moved from `board.uuid` to the correct `board.bus_voltage` path.
 - The legacy `flowrate` and `salinity` paths are retained as aliases of `product_flowrate` and `product_salinity` for backwards compatibility.
 
-## [1.0.0] - 2025-03-29
+# v1.0.0
+
+_2025-03-29_
 
 ### Added
 
