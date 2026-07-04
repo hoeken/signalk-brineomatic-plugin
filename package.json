@@ -46,14 +46,14 @@
   "homepage": "https://github.com/hoeken/signalk-brineomatic-plugin#readme",
   "dependencies": {
     "http-proxy": "^1.18.1",
-    "websocket": "^1.0.34",
-    "yarrboard-client": "^1.2.1"
+    "yarrboard-client": "^1.4.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@stylistic/eslint-plugin": "^5.10.0",
     "eslint": "^10.4.0",
     "globals": "^17.6.0",
-    "prettier": "^3.8.3"
+    "prettier": "^3.8.3",
+    "ws": "^8.18.0"
   }
 }

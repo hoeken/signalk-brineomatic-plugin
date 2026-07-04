@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const http = require("node:http");
-const { server: WebSocketServer, w3cwebsocket: W3CWebSocket } = require("websocket");
+const { WebSocket, WebSocketServer } = require("ws");
 const { ReverseProxy } = require("../src/reverse-proxy");
 
 // Bind a server to an ephemeral port on loopback and resolve with the port.
@@ -181,11 +181,11 @@ test("ReverseProxy", async (t) => {
   await t.test("proxies a WebSocket connection end to end", { timeout: 5000 }, async () => {
     const httpServer = http.createServer();
     const upstreamPort = await listen(httpServer);
-    const wsServer = new WebSocketServer({ httpServer, autoAcceptConnections: true });
-    wsServer.on("connect", (conn) => {
-      conn.on("message", (msg) => {
-        if (msg.type === "utf8")
-          conn.sendUTF(`echo:${msg.utf8Data}`);
+    const wsServer = new WebSocketServer({ server: httpServer });
+    wsServer.on("connection", (socket) => {
+      socket.on("message", (data, isBinary) => {
+        if (!isBinary)
+          socket.send(`echo:${data.toString()}`);
       });
     });
 
@@ -193,7 +193,7 @@ test("ReverseProxy", async (t) => {
     const proxyPort = await ready;
 
     const reply = await new Promise((resolve, reject) => {
-      const client = new W3CWebSocket(`ws://127.0.0.1:${proxyPort}/ws`);
+      const client = new WebSocket(`ws://127.0.0.1:${proxyPort}/ws`);
       client.onopen = () => client.send("ping");
       client.onmessage = (e) => {
         resolve(e.data);
@@ -203,7 +203,7 @@ test("ReverseProxy", async (t) => {
     });
     assert.equal(reply, "echo:ping");
 
-    wsServer.shutDown();
+    wsServer.close();
     proxy.close();
     await new Promise((r) => httpServer.close(r));
   });
