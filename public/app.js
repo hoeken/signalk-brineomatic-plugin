@@ -27,42 +27,28 @@ function setStatus(text, isError) {
 function renderGrid(boards) {
   const grid = document.getElementById("grid");
 
-  for (const board of boards) {
+  // Lay out the static structure with a template, then fill the dynamic
+  // fields via textContent/.href so the DOM escapes untrusted board values.
+  grid.innerHTML = boards.map(() => `
+    <a class="card">
+      <img class="icon" src="logo.png" alt="">
+      <div class="info">
+        <div class="name"></div>
+        <div class="host"></div>
+        <div class="state"><span class="dot"></span><span class="state-text"></span></div>
+      </div>
+    </a>
+  `).join("");
+
+  grid.querySelectorAll(".card").forEach((card, i) => {
+    const board = boards[i];
     const state = board.state || "IDLE";
-    const dotClass = STATE_CLASS[state] || "";
-
-    const card = document.createElement("a");
-    card.className = "card";
     card.href = boardUrl(board);
-
-    const icon = document.createElement("img");
-    icon.className = "icon";
-    icon.src = "logo.png";
-    icon.alt = "";
-
-    const info = document.createElement("div");
-    info.className = "info";
-
-    const name = document.createElement("div");
-    name.className = "name";
-    name.textContent = board.name || board.host;
-
-    const host = document.createElement("div");
-    host.className = "host";
-    host.textContent = board.host;
-
-    const stateEl = document.createElement("div");
-    stateEl.className = "state";
-    const dot = document.createElement("span");
-    dot.className = `dot ${dotClass}`.trim();
-    const stateText = document.createElement("span");
-    stateText.textContent = state.toLowerCase();
-    stateEl.append(dot, stateText);
-
-    info.append(name, host, stateEl);
-    card.append(icon, info);
-    grid.append(card);
-  }
+    card.querySelector(".name").textContent = board.name || board.host;
+    card.querySelector(".host").textContent = board.host;
+    card.querySelector(".dot").className = `dot ${STATE_CLASS[state] || ""}`.trim();
+    card.querySelector(".state-text").textContent = state.toLowerCase();
+  });
 
   document.getElementById("status").hidden = true;
   grid.hidden = false;
