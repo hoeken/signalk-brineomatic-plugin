@@ -1,6 +1,6 @@
 # signalk-brineomatic-plugin
 
-SignalK plugin for interfacing with [Brineomatic](https://brineomatic.com) watermaker controllers.
+SignalK plugin for interfacing with [Brineomatic](https://brineomatic.com) watermaker controllers.  Now with reverse proxy for remote access via Tailscale or other VPN.
 
 ## Setup
 
