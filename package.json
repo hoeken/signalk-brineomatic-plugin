@@ -21,8 +21,13 @@
   },
   "keywords": [
     "signalk-node-server-plugin",
+    "signalk-webapp",
     "signalk-category-hardware"
   ],
+  "signalk": {
+    "displayName": "Brineomatic",
+    "appIcon": "logo.png"
+  },
   "author": "Zach Hoeken",
   "license": "ISC",
   "bugs": {
