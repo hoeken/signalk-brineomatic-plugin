@@ -54,6 +54,62 @@ function renderGrid(boards) {
   grid.hidden = false;
 }
 
+// Light/dark toggle. The head script applies any saved override before paint;
+// this only manages the footer button and persistence. With no override we
+// follow the OS setting via prefers-color-scheme.
+const THEME_KEY = "brineomatic-theme";
+
+const ICONS = {
+  // A sun (shown while dark, i.e. "switch to light") and a moon (shown while
+  // light). Both draw with currentColor so they inherit the button's color.
+  light: '<svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>',
+  dark: '<svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M20 14.5A8 8 0 019.5 4a7 7 0 108.7 10.5c.5-.16.98.34.8.8-.16.4-.34.8-.55 1.2z"/></svg>',
+};
+
+function systemTheme() {
+  return window.matchMedia("(prefers-color-scheme: light)").matches
+    ? "light"
+    : "dark";
+}
+
+function currentTheme() {
+  return document.documentElement.getAttribute("data-theme") || systemTheme();
+}
+
+function renderThemeToggle() {
+  const btn = document.getElementById("theme-toggle");
+  if (!btn) return;
+  const theme = currentTheme();
+  const next = theme === "dark" ? "light" : "dark";
+  btn.querySelector(".icon").outerHTML = ICONS[next];
+  btn.querySelector(".label").textContent = `${next} mode`;
+  btn.setAttribute("aria-label", `Switch to ${next} mode`);
+}
+
+function initTheme() {
+  const btn = document.getElementById("theme-toggle");
+  if (!btn) return;
+
+  btn.addEventListener("click", () => {
+    const next = currentTheme() === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    try {
+      localStorage.setItem(THEME_KEY, next);
+    } catch (e) {}
+    renderThemeToggle();
+  });
+
+  // Keep the label in sync if the OS flips while we're following it.
+  window
+    .matchMedia("(prefers-color-scheme: light)")
+    .addEventListener("change", () => {
+      if (!document.documentElement.getAttribute("data-theme"))
+        renderThemeToggle();
+    });
+
+  renderThemeToggle();
+}
+
 async function main() {
   let boards;
   try {
@@ -81,4 +137,5 @@ async function main() {
   renderGrid(boards);
 }
 
+initTheme();
 main();

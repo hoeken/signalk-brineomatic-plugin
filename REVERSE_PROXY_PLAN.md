@@ -69,7 +69,7 @@ this plugin's specific wiring.
   landing `public/`. It is **decoupled from `yarrboard-client`**: the consuming
   plugin passes in a board descriptor list — `{ host, use_ssl, proxy_port,
   enable_proxy, name, status() }` — and this layer needs nothing else. (Consider
-  factoring this into its own module, e.g. `signalk-board-proxy.js`, or even a
+  factoring this into its own module, e.g. `board-proxy.js`, or even a
   standalone npm package, so sibling plugins can `require` it instead of copying.)
 
 - **Layer 3 — this plugin's wiring (Brineomatic-specific, stays here):**
@@ -89,7 +89,7 @@ Nothing from `yarrboard-client`, `signalk-bus.js`, or `watermaker.*` is required
 | File | Change |
 | --- | --- |
 | `reverse-proxy.js` (new) | **Layer 1 — pure proxy core.** Server lifecycle, no SignalK/Brineomatic coupling (see Reusability & module boundary). |
-| `signalk-board-proxy.js` (new) | **Layer 2 — reusable SignalK helper.** Manages N proxies, the `/boards` route, and serving `public/`; consumes a plain board-descriptor list, Brineomatic-agnostic. |
+| `board-proxy.js` (new) | **Layer 2 — reusable SignalK helper.** Manages N proxies, the `/boards` route, and serving `public/`; consumes a plain board-descriptor list, Brineomatic-agnostic. |
 | `index.js` | **Layer 3 (this plugin).** Schema fields; build board descriptors from `YarrboardClient`s; hand them to the Layer 2 helper in start/stop. |
 | `public/index.html` (new) | Landing page shell (reusable markup; Brineomatic title/branding). |
 | `public/app.js` (new) | Fetch `/boards`, redirect (single) or render grid (multiple) — reusable as-is. |
@@ -189,14 +189,14 @@ Add per-board fields (keep them optional so existing configs keep working):
 
 No `bind_address` and no proxy-auth fields — see resolved questions below.
 
-### 3. Lifecycle via the Layer 2 helper (`signalk-board-proxy.js`)
+### 3. Lifecycle via the Layer 2 helper (`board-proxy.js`)
 
 The lifecycle and the `/boards` endpoint live in the **reusable** Layer 2 helper,
 so a consuming plugin gets them for free. The helper is fed a **board-descriptor
 list** and a `status()` getter — it never touches `yarrboard-client`:
 
 ```js
-// signalk-board-proxy.js — reusable SignalK helper (Brineomatic-agnostic)
+// board-proxy.js — reusable SignalK helper (Brineomatic-agnostic)
 const { ReverseProxy } = require("./reverse-proxy");
 
 class BoardProxyManager {

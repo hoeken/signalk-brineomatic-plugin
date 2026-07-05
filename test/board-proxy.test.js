@@ -30,7 +30,7 @@ require.cache[reverseProxyPath] = {
   exports: { ReverseProxy: FakeReverseProxy },
 };
 
-const { BoardProxyManager } = require("../src/signalk-board-proxy");
+const { BoardProxyManager } = require("../src/board-proxy");
 
 test("BoardProxyManager", async (t) => {
   await t.test("only starts proxies for enabled descriptors with a unique port", () => {

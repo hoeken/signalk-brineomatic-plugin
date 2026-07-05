@@ -118,7 +118,7 @@ test dependencies are needed. They cover:
 - **`index.js`** — the plugin schema, the `/boards` route, the yarrboard-client
   message routing, and the unit conversions applied to each update (°C→K,
   mL/h→m³/s, bar→Pa, ms→s, …). No board connection is opened.
-- **`signalk-board-proxy.js`** — descriptor filtering (enable/port/duplicate),
+- **`board-proxy.js`** — descriptor filtering (enable/port/duplicate),
   target URL building, and the `/boards` metadata. `ReverseProxy` is stubbed so
   no ports are opened.
 - **`reverse-proxy.js`** — real HTTP and WebSocket proxying over loopback

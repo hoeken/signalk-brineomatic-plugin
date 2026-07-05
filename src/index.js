@@ -1,6 +1,6 @@
 const YarrboardClient = require("yarrboard-client");
 const { SignalKBus } = require("./signalk-bus.js");
-const { BoardProxyManager } = require("./signalk-board-proxy.js");
+const { BoardProxyManager } = require("./board-proxy.js");
 
 module.exports = function (app) {
   var plugin = {};

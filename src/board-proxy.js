@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-// signalk-board-proxy.js — reusable SignalK integration helper for exposing an
+// board-proxy.js — reusable SignalK integration helper for exposing an
 // ESP32 board's own webapp remotely. SignalK/ESP32-aware but otherwise generic:
 // it takes a plain board-descriptor list and knows nothing about
 // yarrboard-client, watermaker.* paths, or any specific plugin. Drop it into any

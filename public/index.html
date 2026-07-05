@@ -6,17 +6,34 @@
     <title>Brineomatic</title>
     <link rel="icon" type="image/png" href="logo.png" />
     <link rel="stylesheet" href="style.css" />
+    <script>
+      // Apply a saved theme override before first paint so there's no flash.
+      // With no override we leave data-theme unset and follow the OS setting.
+      (function () {
+        try {
+          var t = localStorage.getItem("brineomatic-theme");
+          if (t === "light" || t === "dark")
+            document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <main class="wrap">
       <header class="head">
-        <img class="logo" src="logo.png" alt="" />
         <h1>Brineomatic</h1>
         <p class="sub">Select a watermaker to open its control panel.</p>
       </header>
 
       <div id="status" class="status" role="status">Loading boards…</div>
       <div id="grid" class="grid" hidden></div>
+
+      <footer class="foot">
+        <button id="theme-toggle" class="theme-toggle" type="button">
+          <span class="icon" aria-hidden="true"></span>
+          <span class="label"></span>
+        </button>
+      </footer>
     </main>
 
     <script src="app.js"></script>

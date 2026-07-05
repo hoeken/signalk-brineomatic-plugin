@@ -1,4 +1,10 @@
-:root {
+/* Dark is the default palette; light is applied either by the system
+   preference (media query) or an explicit user override (data-theme, set by
+   the footer toggle). The [data-theme] selectors outrank the media query, so a
+   deliberate choice always wins over the OS setting. */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
   --bg: #0e1726;
   --card: #16233a;
   --card-hover: #1d2f4d;
@@ -9,6 +15,36 @@
   --ok: #3fb950;
   --warn: #d29922;
   --bad: #f0603e;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+    --bg: #f4f7fb;
+    --card: #ffffff;
+    --card-hover: #eef3fa;
+    --border: #d3ddeb;
+    --text: #16233a;
+    --muted: #5a6b85;
+    --accent: #1f7fbf;
+    --ok: #2da44e;
+    --warn: #bf8700;
+    --bad: #cf3c1f;
+  }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f4f7fb;
+  --card: #ffffff;
+  --card-hover: #eef3fa;
+  --border: #d3ddeb;
+  --text: #16233a;
+  --muted: #5a6b85;
+  --accent: #1f7fbf;
+  --ok: #2da44e;
+  --warn: #bf8700;
+  --bad: #cf3c1f;
 }
 
 * {
@@ -36,22 +72,18 @@ body {
 
 .head {
   text-align: center;
-  margin-bottom: 2rem;
-}
-
-.logo {
-  width: 64px;
-  height: 64px;
-  border-radius: 14px;
+  margin-bottom: 3rem;
 }
 
 .head h1 {
-  margin: 0.5rem 0 0.25rem;
-  font-size: 1.75rem;
+  margin: 0 0 0.5rem;
+  font-size: 3rem;
+  font-weight: 700;
 }
 
 .sub {
   margin: 0;
+  font-size: 1.25rem;
   color: var(--muted);
 }
 
@@ -67,18 +99,25 @@ body {
 
 .grid {
   display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.25rem;
+  /* One card per row on phones, two once there's room. */
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .card {
   display: flex;
   align-items: center;
-  gap: 0.9rem;
-  padding: 1rem 1.1rem;
+  gap: 1.25rem;
+  padding: 1.5rem 1.75rem;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 16px;
   color: inherit;
   text-decoration: none;
   transition:
@@ -94,9 +133,9 @@ body {
 }
 
 .card .icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 9px;
+  width: 72px;
+  height: 72px;
+  border-radius: 14px;
   flex: 0 0 auto;
 }
 
@@ -105,6 +144,7 @@ body {
 }
 
 .card .name {
+  font-size: 1.35rem;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -112,7 +152,7 @@ body {
 }
 
 .card .host {
-  font-size: 0.85rem;
+  font-size: 1rem;
   color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -122,15 +162,15 @@ body {
 .card .state {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  margin-top: 0.35rem;
-  font-size: 0.8rem;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
   color: var(--muted);
 }
 
 .dot {
-  width: 9px;
-  height: 9px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
   background: var(--muted);
   flex: 0 0 auto;
@@ -146,4 +186,39 @@ body {
 
 .dot.bad {
   background: var(--bad);
+}
+
+.foot {
+  margin-top: 2.5rem;
+  text-align: center;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.9rem;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.theme-toggle:hover {
+  color: var(--text);
+  border-color: var(--accent);
+  background: var(--card-hover);
+}
+
+.theme-toggle .icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
 }
