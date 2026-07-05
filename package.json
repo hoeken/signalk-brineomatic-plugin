@@ -15,11 +15,12 @@
     "lint:fix": "eslint --fix .",
     "format": "eslint --fix . && prettier --write .",
     "format:check": "eslint . && prettier --check .",
+    "prepare": "husky",
     "release": "git tag -d v$npm_package_version; git tag v$npm_package_version && git push && git push origin v$npm_package_version"
   },
   "lint-staged": {
-    "*.js": "eslint --fix",
-    "*.json": "prettier --write"
+    "*.{js,mjs}": "eslint --fix",
+    "*.{json,css,html}": "prettier --write"
   },
   "repository": {
     "type": "git",
@@ -53,6 +54,8 @@
     "@stylistic/eslint-plugin": "^5.10.0",
     "eslint": "^10.4.0",
     "globals": "^17.6.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8",
     "prettier": "^3.8.3",
     "ws": "^8.18.0"
   }

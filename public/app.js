@@ -78,7 +78,8 @@ function currentTheme() {
 
 function renderThemeToggle() {
   const btn = document.getElementById("theme-toggle");
-  if (!btn) return;
+  if (!btn)
+    return;
   const theme = currentTheme();
   const next = theme === "dark" ? "light" : "dark";
   btn.querySelector(".icon").outerHTML = ICONS[next];
@@ -88,14 +89,17 @@ function renderThemeToggle() {
 
 function initTheme() {
   const btn = document.getElementById("theme-toggle");
-  if (!btn) return;
+  if (!btn)
+    return;
 
   btn.addEventListener("click", () => {
     const next = currentTheme() === "dark" ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", next);
     try {
       localStorage.setItem(THEME_KEY, next);
-    } catch (e) {}
+    } catch {
+      // localStorage may be unavailable (private mode, disabled cookies).
+    }
     renderThemeToggle();
   });
 
