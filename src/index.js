@@ -140,6 +140,8 @@ module.exports = function (app) {
         this.handleUpdate(data);
       else if (data.msg == "config")
         this.handleConfig(data);
+      else if (data.msg == "stats")
+        this.handleStats(data);
       else if (data.msg == "status") {
         if (data.status == "error")
           app.setPluginError(`[${this.hostname}] ${data.message}`);
@@ -151,6 +153,22 @@ module.exports = function (app) {
     yb.onopen = function (_event) {
       this.getConfig();
       this.startUpdatePoller(this.update_interval);
+      this.startStatsPoller(60000);
+    };
+
+    // Stats change slowly (lifetime totals), so poll them once a minute rather
+    // than on the fast update interval. Recurses via setTimeout and stops on its
+    // own once the socket closes, mirroring the client's update poller.
+    yb.startStatsPoller = function (stats_interval) {
+      this.statsInterval = stats_interval;
+      this._statsPoller();
+    };
+
+    yb._statsPoller = function () {
+      if (this.isOpen()) {
+        this.getStats();
+        setTimeout(this._statsPoller.bind(this), this.statsInterval);
+      }
     };
 
     yb.queueDeltasAndUpdates = function (data) {
@@ -331,6 +349,19 @@ module.exports = function (app) {
       this.queueDeltasAndUpdates(data);
 
       //actually send them off now.
+      this.bus.sendUpdates();
+    };
+
+    yb.handleStats = function (data) {
+      if (!this.config)
+        return;
+
+      let mainPath = this.getMainBoardPath();
+
+      // total_runtime is a lifetime total reported in seconds.
+      if (Object.hasOwn(data, "total_runtime"))
+        this.bus.queueConsolidated(`${mainPath}.board.runtime`, data.total_runtime, { units: "s", description: "Total watermaker runtime since new" });
+
       this.bus.sendUpdates();
     };
 
