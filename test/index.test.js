@@ -29,6 +29,125 @@ test("plugin metadata and schema", () => {
   assert.equal(props.require_login.default, false);
   assert.equal(props.enable_proxy.default, false);
   assert.equal(props.proxy_port.default, 3200);
+  assert.equal(props.water_temperature_path.default, "");
+  assert.equal(props.motor_temperature_path.default, "");
+  assert.equal(props.tank_level_path.default, "");
+  assert.equal(props.battery_level_path.default, "");
+});
+
+test("SignalK -> board sensor forwarding", async (t) => {
+  // Stand-in for a yarrboard connection that records set_watermaker sends.
+  function createFakeBoard(overrides = {}) {
+    return {
+      hostname: "wm.local",
+      update_interval: 1000,
+      open: true,
+      sent: [],
+      isOpen() {
+        return this.open;
+      },
+      send(msg, requireConfirmation) {
+        this.sent.push({ msg, requireConfirmation });
+      },
+      ...overrides,
+    };
+  }
+
+  await t.test("blank or missing paths subscribe to nothing", () => {
+    const app = createFakeApp();
+    const plugin = createPlugin(app);
+
+    plugin.startSensorSubscriptions(createFakeBoard(), {
+      water_temperature_path: "  ",
+      tank_level_path: "",
+    });
+
+    assert.deepEqual(app.selfStreams, {});
+    assert.equal(plugin.unsubscribes.length, 0);
+  });
+
+  await t.test("forwards values, converting temperatures from K to °C", () => {
+    const app = createFakeApp();
+    const plugin = createPlugin(app);
+    const board = createFakeBoard();
+
+    plugin.startSensorSubscriptions(board, {
+      water_temperature_path: "environment.water.temperature",
+      motor_temperature_path: "propulsion.main.temperature",
+      tank_level_path: "tanks.freshWater.0.currentLevel",
+      battery_level_path: "electrical.batteries.0.capacity.stateOfCharge",
+    });
+
+    app.pushSelfValue("environment.water.temperature", 298.15);
+    app.pushSelfValue("propulsion.main.temperature", 313.15);
+    app.pushSelfValue("tanks.freshWater.0.currentLevel", 0.75);
+    app.pushSelfValue("electrical.batteries.0.capacity.stateOfCharge", 0.9);
+
+    assert.equal(board.sent.length, 4);
+    for (const { msg, requireConfirmation } of board.sent) {
+      assert.equal(msg.cmd, "set_watermaker");
+      assert.equal(requireConfirmation, false);
+    }
+    close(board.sent[0].msg.water_temperature, 25, "water temp");
+    close(board.sent[1].msg.motor_temperature, 40, "motor temp");
+    assert.equal(board.sent[2].msg.tank_level, 0.75);
+    assert.equal(board.sent[3].msg.battery_level, 0.9);
+  });
+
+  await t.test("rate-limits each sensor to the board's update interval", () => {
+    const app = createFakeApp();
+    const plugin = createPlugin(app);
+    const board = createFakeBoard();
+
+    plugin.startSensorSubscriptions(board, { tank_level_path: "tanks.freshWater.0.currentLevel" });
+
+    app.pushSelfValue("tanks.freshWater.0.currentLevel", 0.5);
+    app.pushSelfValue("tanks.freshWater.0.currentLevel", 0.51);
+
+    assert.equal(board.sent.length, 1);
+    assert.equal(board.sent[0].msg.tank_level, 0.5);
+  });
+
+  await t.test("ignores non-numeric values", () => {
+    const app = createFakeApp();
+    const plugin = createPlugin(app);
+    const board = createFakeBoard();
+
+    plugin.startSensorSubscriptions(board, { tank_level_path: "tanks.freshWater.0.currentLevel" });
+
+    app.pushSelfValue("tanks.freshWater.0.currentLevel", null);
+    app.pushSelfValue("tanks.freshWater.0.currentLevel", "half");
+    app.pushSelfValue("tanks.freshWater.0.currentLevel", NaN);
+
+    assert.equal(board.sent.length, 0);
+  });
+
+  await t.test("does not queue values while the board is disconnected", () => {
+    const app = createFakeApp();
+    const plugin = createPlugin(app);
+    const board = createFakeBoard({ open: false });
+
+    plugin.startSensorSubscriptions(board, { tank_level_path: "tanks.freshWater.0.currentLevel" });
+
+    app.pushSelfValue("tanks.freshWater.0.currentLevel", 0.5);
+
+    assert.equal(board.sent.length, 0);
+  });
+
+  await t.test("stop() unsubscribes from the SignalK streams", () => {
+    const app = createFakeApp();
+    const plugin = createPlugin(app);
+    const board = createFakeBoard();
+
+    plugin.startSensorSubscriptions(board, { tank_level_path: "tanks.freshWater.0.currentLevel" });
+    assert.equal(plugin.unsubscribes.length, 1);
+
+    plugin.stop();
+
+    assert.equal(plugin.unsubscribes.length, 0);
+    app.pushSelfValue("tanks.freshWater.0.currentLevel", 0.5);
+    assert.equal(board.sent.length, 0);
+  });
 });
 
 test("registerWithRouter serves /boards", async (t) => {
@@ -257,6 +376,11 @@ test("plugin start/stop lifecycle", () => {
     hostname: host,
     boardname: host.split(".")[0],
     config: { name: `cfg-${host}` },
+    update_interval: 1000,
+    isOpen() {
+      return true;
+    },
+    send() {},
     start() {
       started.push(host);
     },
@@ -270,12 +394,20 @@ test("plugin start/stop lifecycle", () => {
 
   plugin.start({
     config: [
-      { host: "wm.local", use_ssl: false, proxy_port: 3200, enable_proxy: false, update_interval: 1000 },
+      {
+        host: "wm.local",
+        use_ssl: false,
+        proxy_port: 3200,
+        enable_proxy: false,
+        update_interval: 1000,
+        tank_level_path: "tanks.freshWater.0.currentLevel",
+      },
     ],
   });
 
   assert.deepEqual(started, ["wm.local"]);
   assert.equal(plugin.connections.length, 1);
+  assert.equal(plugin.unsubscribes.length, 1, "start() subscribed to the configured sensor path");
   assert.ok(plugin.boardProxies, "a BoardProxyManager is created");
   // enable_proxy was false, so no proxy is running.
   assert.deepEqual(plugin.boardProxies.boards(), []);
@@ -284,6 +416,7 @@ test("plugin start/stop lifecycle", () => {
 
   assert.deepEqual(closed, ["wm.local"]);
   assert.equal(plugin.connections.length, 0);
+  assert.equal(plugin.unsubscribes.length, 0);
   assert.equal(plugin.boardProxies, null);
 });
 

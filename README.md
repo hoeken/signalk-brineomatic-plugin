@@ -16,6 +16,28 @@ Add your board hosts and configure login info in the plugin preferences. Per-boa
 | `password`        | `admin`            | Password (if login required)               |
 | `enable_proxy`    | `false`            | Serve this board's web UI on a local port for remote access (see below) |
 | `proxy_port`      | `3200`             | Local port for this board's proxy (unique per board) |
+| `water_temperature_path` | _(blank)_   | SignalK path to forward as source water temperature (see below) |
+| `motor_temperature_path` | _(blank)_   | SignalK path to forward as pump motor temperature |
+| `tank_level_path`        | _(blank)_   | SignalK path to forward as fresh water tank level |
+| `battery_level_path`     | _(blank)_   | SignalK path to forward as battery state of charge |
+
+## Sending sensor data to the board
+
+If your boat already measures water temperature, tank level, etc. elsewhere on
+the SignalK network, the plugin can forward those readings to the Brineomatic so
+it can use them instead of (or in addition to) its own sensors. Set any of the
+four `*_path` options to a SignalK path and the plugin subscribes to it and
+pushes each value to the board; leave an option blank to disable it.
+
+| Option                   | Example path                                    | Units sent to board |
+| ------------------------ | ----------------------------------------------- | ------------------- |
+| `water_temperature_path` | `environment.water.temperature`                 | °C (converted from SignalK's Kelvin) |
+| `motor_temperature_path` | `propulsion.main.temperature`                   | °C (converted from SignalK's Kelvin) |
+| `tank_level_path`        | `tanks.freshWater.0.currentLevel`               | ratio 0.0–1.0       |
+| `battery_level_path`     | `electrical.batteries.0.capacity.stateOfCharge` | ratio 0.0–1.0       |
+
+Updates are rate-limited to the board's `update_interval` and paused while the
+board is disconnected.
 
 ## Remote access (reverse proxy)
 

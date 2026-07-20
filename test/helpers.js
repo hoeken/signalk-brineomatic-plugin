@@ -27,6 +27,25 @@ function createFakeApp() {
     setPluginError(msg) {
       app.pluginErrors.push(msg);
     },
+    // Minimal streambundle double: getSelfStream(path).onValue(cb) registers
+    // the callback, and tests emit values with app.pushSelfValue(path, value).
+    selfStreams: {},
+    pushSelfValue(path, value) {
+      for (const cb of app.selfStreams[path] || [])
+        cb(value);
+    },
+    streambundle: {
+      getSelfStream(path) {
+        return {
+          onValue(cb) {
+            (app.selfStreams[path] = app.selfStreams[path] || []).push(cb);
+            return () => {
+              app.selfStreams[path] = app.selfStreams[path].filter((c) => c !== cb);
+            };
+          },
+        };
+      },
+    },
   };
   return app;
 }

@@ -2,6 +2,17 @@ const YarrboardClient = require("yarrboard-client");
 const { SignalKBus } = require("./signalk-bus.js");
 const { BoardProxyManager } = require("./board-proxy.js");
 
+// SignalK -> Brineomatic sensor forwarding. Each entry maps a per-board config
+// option to the set_watermaker field the firmware expects. SignalK carries
+// temperatures in Kelvin but the board wants Celsius; levels are 0-1 ratios on
+// both sides.
+const SENSOR_INPUTS = [
+  { field: "water_temperature", option: "water_temperature_path", convert: (v) => v - 273.15 },
+  { field: "motor_temperature", option: "motor_temperature_path", convert: (v) => v - 273.15 },
+  { field: "tank_level", option: "tank_level_path", convert: (v) => v },
+  { field: "battery_level", option: "battery_level_path", convert: (v) => v },
+];
+
 module.exports = function (app) {
   var plugin = {};
 
@@ -11,6 +22,7 @@ module.exports = function (app) {
 
   plugin.bus = new SignalKBus(app, plugin.id);
   plugin.connections = [];
+  plugin.unsubscribes = [];
 
   plugin.start = function (options, _restartPlugin) {
     app.debug(`YarrboardClient.version: ${YarrboardClient.version}`);
@@ -33,6 +45,8 @@ module.exports = function (app) {
 
       plugin.connections.push(brineomatic);
 
+      plugin.startSensorSubscriptions(brineomatic, board);
+
       // Build a Brineomatic-agnostic descriptor for the reusable proxy helper.
       // name/status are getters so the landing page reflects live board state.
       descriptors.push({
@@ -52,6 +66,10 @@ module.exports = function (app) {
   plugin.stop = function () {
     app.debug("Plugin stopped");
 
+    for (const unsubscribe of plugin.unsubscribes)
+      unsubscribe();
+    plugin.unsubscribes = [];
+
     for (const yb of plugin.connections)
       yb.close();
     plugin.connections = [];
@@ -59,6 +77,40 @@ module.exports = function (app) {
     if (plugin.boardProxies) {
       plugin.boardProxies.stop();
       plugin.boardProxies = null;
+    }
+  };
+
+  // Subscribe to the SignalK paths the user mapped to the board's external
+  // sensor inputs and forward each value with a set_watermaker command.
+  plugin.startSensorSubscriptions = function (yb, board) {
+    for (const sensor of SENSOR_INPUTS) {
+      const path = (board[sensor.option] || "").trim();
+      if (!path)
+        continue;
+
+      app.debug(`[${yb.hostname}] forwarding ${path} -> ${sensor.field}`);
+
+      let lastSent = 0;
+      const unsubscribe = app.streambundle.getSelfStream(path).onValue((value) => {
+        if (typeof value !== "number" || !Number.isFinite(value))
+          return;
+
+        // Don't queue while disconnected; the readings would be stale by the
+        // time a reconnect flushes them.
+        if (!yb.isOpen())
+          return;
+
+        // Rate-limit to the board's update interval so a chatty SignalK
+        // source can't flood the client's (shallow) message queue.
+        const now = Date.now();
+        if (now - lastSent < yb.update_interval)
+          return;
+        lastSent = now;
+
+        yb.send({ cmd: "set_watermaker", [sensor.field]: sensor.convert(value) }, false);
+      });
+
+      plugin.unsubscribes.push(unsubscribe);
     }
   };
 
@@ -109,6 +161,34 @@ module.exports = function (app) {
               type: "string",
               title: "Password",
               default: "admin",
+            },
+            water_temperature_path: {
+              type: "string",
+              title: "Water temperature path",
+              description:
+                "SignalK path to forward to the board as source water temperature, e.g. environment.water.temperature. Kelvin (SignalK standard) is converted to Celsius for the board. Leave blank to disable.",
+              default: "",
+            },
+            motor_temperature_path: {
+              type: "string",
+              title: "Motor temperature path",
+              description:
+                "SignalK path to forward to the board as high pressure pump motor temperature. Kelvin (SignalK standard) is converted to Celsius for the board. Leave blank to disable.",
+              default: "",
+            },
+            tank_level_path: {
+              type: "string",
+              title: "Tank level path",
+              description:
+                "SignalK path to forward to the board as fresh water tank level, e.g. tanks.freshWater.0.currentLevel. Ratio from 0.0 to 1.0. Leave blank to disable.",
+              default: "",
+            },
+            battery_level_path: {
+              type: "string",
+              title: "Battery level path",
+              description:
+                "SignalK path to forward to the board as battery state of charge, e.g. electrical.batteries.0.capacity.stateOfCharge. Ratio from 0.0 to 1.0. Leave blank to disable.",
+              default: "",
             },
             enable_proxy: {
               type: "boolean",
