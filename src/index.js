@@ -274,14 +274,28 @@ module.exports = function (app) {
 
       let mainPath = this.getMainBoardPath();
 
-      //console.log(JSON.stringify(data));
+      //firmware 2.8.0+ (schema_version 2) nests these under config.*; older firmware sends them flat
+      const cfg = data.config ?? {};
+      const board = {
+        firmware_version: cfg.app?.firmware_version ?? data.firmware_version,
+        hardware_version: cfg.app?.hardware_version ?? data.hardware_version,
+        name: cfg.config?.name ?? data.name,
+        uuid: cfg.network?.uuid ?? data.uuid,
+        use_ssl: cfg.http?.ssl_enabled ?? data.use_ssl,
+      };
 
-      this.bus.queueConsolidated(`${mainPath}.board.firmware_version`, data.firmware_version, { description: "Firmware version of the board" });
-      this.bus.queueConsolidated(`${mainPath}.board.hardware_version`, data.hardware_version, { description: "Hardware version of the board" });
-      this.bus.queueConsolidated(`${mainPath}.board.name`, data.name, { description: "User defined name of the board" });
-      this.bus.queueConsolidated(`${mainPath}.board.uuid`, data.uuid, { description: "Unique ID of the board" });
+      const missingConfigKeys = Object.keys(board).filter((key) => board[key] === undefined);
+      if (missingConfigKeys.length) {
+        app.error(`[${this.hostname}] config message missing: ${missingConfigKeys.join(", ")}`);
+        app.error(`[${this.hostname}] raw config message: ${JSON.stringify(data)}`);
+      }
+
+      this.bus.queueConsolidated(`${mainPath}.board.firmware_version`, board.firmware_version, { description: "Firmware version of the board" });
+      this.bus.queueConsolidated(`${mainPath}.board.hardware_version`, board.hardware_version, { description: "Hardware version of the board" });
+      this.bus.queueConsolidated(`${mainPath}.board.name`, board.name, { description: "User defined name of the board" });
+      this.bus.queueConsolidated(`${mainPath}.board.uuid`, board.uuid, { description: "Unique ID of the board" });
       this.bus.queueConsolidated(`${mainPath}.board.hostname`, this.hostname, { description: "Hostname of the board" });
-      this.bus.queueConsolidated(`${mainPath}.board.use_ssl`, data.use_ssl, { description: "Whether the app uses SSL or not" });
+      this.bus.queueConsolidated(`${mainPath}.board.use_ssl`, board.use_ssl, { description: "Whether the app uses SSL or not" });
       this.bus.queueMeta(`${mainPath}.board.uptime`, { units: "s", description: "Seconds since the last reboot" });
 
       //some boards don't have this.

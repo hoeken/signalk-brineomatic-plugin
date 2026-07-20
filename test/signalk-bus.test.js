@@ -28,6 +28,23 @@ test("SignalKBus", async (t) => {
     });
   });
 
+  await t.test("queueDelta skips undefined values (SignalK rejects deltas without a value)", () => {
+    const app = createFakeApp();
+    const bus = new SignalKBus(app, "test-plugin");
+
+    bus.queueDelta("watermaker.wm.board.firmware_version", undefined);
+    bus.queueDelta("watermaker.wm.board.name", null);
+    bus.queueDelta("watermaker.wm.salinity", 0);
+    bus.sendDeltas();
+
+    assert.equal(app.messages.length, 1);
+    assert.deepEqual(app.messages[0].delta.updates[0].values, [
+      { path: "watermaker.wm.board.name", value: null },
+      { path: "watermaker.wm.salinity", value: 0 },
+    ]);
+    assert.equal(app.debugLogs.length, 1, "the skipped path is logged for debugging");
+  });
+
   await t.test("sendDeltas drains the queue so a second call is a no-op", () => {
     const app = createFakeApp();
     const bus = new SignalKBus(app, "test-plugin");

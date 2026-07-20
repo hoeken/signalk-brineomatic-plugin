@@ -126,6 +126,33 @@ test("createYarrboard", async (t) => {
     assert.ok(metas["watermaker.wm.status"].description);
   });
 
+  await t.test("handleConfig reads nested board fields from schema_version 2 configs", () => {
+    const app = createFakeApp();
+    const plugin = createPlugin(app);
+    const yb = plugin.createYarrboard("wm.local");
+
+    // firmware 2.8.0+ nests identity fields under config.* sections
+    yb.handleConfig({
+      msg: "config",
+      config: {
+        schema_version: 2,
+        app: { firmware_version: "2.8.0", hardware_version: "BRINEOMATIC_REV_C" },
+        config: { name: "Brineomatic" },
+        network: { uuid: "901AE54EB580" },
+        http: { ssl_enabled: false },
+      },
+    });
+
+    const deltas = collectDeltas(app);
+
+    assert.equal(deltas["watermaker.wm.board.firmware_version"], "2.8.0");
+    assert.equal(deltas["watermaker.wm.board.hardware_version"], "BRINEOMATIC_REV_C");
+    assert.equal(deltas["watermaker.wm.board.name"], "Brineomatic");
+    assert.equal(deltas["watermaker.wm.board.uuid"], "901AE54EB580");
+    assert.equal(deltas["watermaker.wm.board.use_ssl"], false);
+    assert.equal(app.errors.length, 0, "no missing-field errors are logged");
+  });
+
   await t.test("handleUpdate converts units into SignalK base units", () => {
     const app = createFakeApp();
     const plugin = createPlugin(app);

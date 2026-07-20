@@ -28,6 +28,13 @@ class SignalKBus {
   }
 
   queueDelta(path, value) {
+    // undefined is dropped in JSON serialization, producing a delta with no
+    // value key that SignalK rejects ("Delta is missing value")
+    if (value === undefined) {
+      this.app.debug(`Skipping delta for ${path}: value is undefined`);
+      return;
+    }
+
     this.deltaQueue.push({ path, value });
   }
 
