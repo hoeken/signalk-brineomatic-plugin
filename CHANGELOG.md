@@ -1,3 +1,22 @@
+# v1.4.0
+
+_2026-07-20_
+
+### Added
+
+- **NMEA 2000 publishing of watermaker status (PGN 130567).** A new per-board "Enable Publishing to N2K" option (off by default) mirrors each board update onto the N2K bus via `nmea2000JsonOut`: watermaker state, pump and diverter valve states, salinity, water temperature, flow rates, and pressures, with the PGN's warning indicators derived from the board's run result.
+- **SignalK → Brineomatic sensor forwarding.** New per-board options (`water_temperature_path`, `motor_temperature_path`, `tank_level_path`, `battery_level_path`) let the plugin subscribe to SignalK paths and push their values to the board, so it can use the boat's existing sensors. Temperatures are converted from SignalK's Kelvin to Celsius automatically, sends are rate-limited to the board's `update_interval`, and forwarding pauses while the board is disconnected.
+- **Total runtime** now published at `watermaker.{boardname}.board.runtime` (seconds), polled from the board's lifetime stats once a minute.
+- **Light/dark theme toggle** on the board landing page. It follows your OS preference by default, and a deliberate choice persists across visits.
+
+### Changed
+
+- Redesigned the board landing page: larger typography, bigger card icons, and a responsive one/two-column grid.
+
+### Fixed
+
+- Boards running **firmware 2.8.0+** no longer publish missing identity fields (name, hostname, UUID, firmware/hardware version). The new firmware nests these fields differently in its config message; the plugin now reads both layouts. Undefined values are also skipped before reaching SignalK, eliminating the "Delta is missing value" log errors.
+
 # v1.3.0
 
 _2026-07-04_

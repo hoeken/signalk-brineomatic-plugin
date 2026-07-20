@@ -1,6 +1,6 @@
 {
   "name": "signalk-brineomatic-plugin",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Open hardware watermaker controller.  Data, control, and remote access.",
   "main": "src/index.js",
   "files": [
