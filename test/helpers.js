@@ -27,6 +27,12 @@ function createFakeApp() {
     setPluginError(msg) {
       app.pluginErrors.push(msg);
     },
+    // The real app is an EventEmitter; N2K publishing goes out via
+    // app.emit("nmea2000JsonOut", pgn). Record the events for assertions.
+    emitted: [],
+    emit(event, msg) {
+      app.emitted.push({ event, msg });
+    },
     // Minimal streambundle double: getSelfStream(path).onValue(cb) registers
     // the callback, and tests emit values with app.pushSelfValue(path, value).
     selfStreams: {},

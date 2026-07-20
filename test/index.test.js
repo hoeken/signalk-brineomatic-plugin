@@ -27,6 +27,7 @@ test("plugin metadata and schema", () => {
   assert.equal(props.use_ssl.default, false);
   assert.equal(props.update_interval.default, 1000);
   assert.equal(props.require_login.default, false);
+  assert.equal(props.enable_n2k.default, false);
   assert.equal(props.enable_proxy.default, false);
   assert.equal(props.proxy_port.default, 3200);
   assert.equal(props.water_temperature_path.default, "");
@@ -351,6 +352,37 @@ test("createYarrboard", async (t) => {
     assert.equal(d["watermaker.wm.board.uptime"], 5); // us -> s (round)
   });
 
+  await t.test("publishes PGN 130567 on config and update when N2K is enabled", () => {
+    const app = createFakeApp();
+    const plugin = createPlugin(app);
+    const yb = plugin.createYarrboard("wm.local");
+    yb.n2k = new (require("../src/n2k-publisher").N2KPublisher)(app);
+
+    yb.handleConfig({ brineomatic: true, status: "IDLE" });
+    assert.equal(app.emitted.length, 1, "config publishes a PGN");
+
+    yb.handleUpdate({ brineomatic: true, status: "RUNNING", boost_pump_on: true, runtime_elapsed: 3600000 });
+    assert.equal(app.emitted.length, 2, "update publishes a PGN");
+
+    const pgn = app.emitted[1].msg;
+    assert.equal(app.emitted[1].event, "nmea2000JsonOut");
+    assert.equal(pgn.pgn, 130567);
+    assert.equal(pgn.watermakerOperatingState, "Running");
+    assert.equal(pgn.lowPressurePumpStatus, "Yes");
+    assert.equal(pgn.runTime, 3600);
+  });
+
+  await t.test("does not publish to N2K by default", () => {
+    const app = createFakeApp();
+    const plugin = createPlugin(app);
+    const yb = plugin.createYarrboard("wm.local");
+
+    yb.handleConfig({ brineomatic: true, status: "IDLE" });
+    yb.handleUpdate({ brineomatic: true, status: "RUNNING" });
+
+    assert.equal(app.emitted.length, 0);
+  });
+
   await t.test("does not emit brineomatic deltas when the payload lacks brineomatic", () => {
     const app = createFakeApp();
     const plugin = createPlugin(app);
@@ -401,12 +433,14 @@ test("plugin start/stop lifecycle", () => {
         enable_proxy: false,
         update_interval: 1000,
         tank_level_path: "tanks.freshWater.0.currentLevel",
+        enable_n2k: true,
       },
     ],
   });
 
   assert.deepEqual(started, ["wm.local"]);
   assert.equal(plugin.connections.length, 1);
+  assert.ok(plugin.connections[0].n2k, "start() attached an N2K publisher (enable_n2k: true)");
   assert.equal(plugin.unsubscribes.length, 1, "start() subscribed to the configured sensor path");
   assert.ok(plugin.boardProxies, "a BoardProxyManager is created");
   // enable_proxy was false, so no proxy is running.

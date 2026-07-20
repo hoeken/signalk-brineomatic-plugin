@@ -14,6 +14,7 @@ Add your board hosts and configure login info in the plugin preferences. Per-boa
 | `require_login`   | `false`            | Whether the board requires authentication  |
 | `username`        | `admin`            | Username (if login required)               |
 | `password`        | `admin`            | Password (if login required)               |
+| `enable_n2k`      | `false`            | Publish watermaker status to the NMEA 2000 bus as PGN 130567 (see below) |
 | `enable_proxy`    | `false`            | Serve this board's web UI on a local port for remote access (see below) |
 | `proxy_port`      | `3200`             | Local port for this board's proxy (unique per board) |
 | `water_temperature_path` | _(blank)_   | SignalK path to forward as source water temperature (see below) |
@@ -38,6 +39,44 @@ pushes each value to the board; leave an option blank to disable it.
 
 Updates are rate-limited to the board's `update_interval` and paused while the
 board is disconnected.
+
+## Publishing to NMEA 2000
+
+With **Enable Publishing to N2K** ticked, the plugin broadcasts the board's
+state on the NMEA 2000 bus as **PGN 130567 (Watermaker Input Setting and
+Status)** every time an update arrives from the board (i.e. at the board's
+`update_interval`). This requires a SignalK NMEA 2000 connection with output
+enabled (e.g. a canbus/Actisense/YDGW connection with "Output Events" on).
+
+Field mapping:
+
+| PGN 130567 field           | Brineomatic source                        |
+| -------------------------- | ----------------------------------------- |
+| Watermaker Operating State | `status` (`RUNNING`→Running, `FLUSHING`→Flushing, `IDLE`/`PICKLED`→Stopped, `PICKLING`/`DEPICKLING`→Rinsing, `STARTUP`→Initiating, …) |
+| Production Start/Stop      | `status == RUNNING`                       |
+| Rinse Start/Stop, Flush Mode Status | `status == FLUSHING`             |
+| Low Pressure Pump Status   | `boost_pump_on`                           |
+| High Pressure Pump Status  | `high_pressure_pump_on`                   |
+| Product Solenoid Valve Status | `diverter_valve_open` (open → Warning) |
+| Filter Status              | Warning on `run_result` `ERR_FILTER_PRESSURE_*` |
+| Sensor Status              | Warning on `run_result` `ERR_MEMBRANE_PRESSURE_*` (the PGN has no dedicated high-pressure warning field) |
+| Salinity Status            | Warning on `run_result` `ERR_PRODUCT_SALINITY_*` |
+| System Status              | Warning on any `run_result` `ERR_*`       |
+| Oil Change Indicator Status | always OK                                |
+| Salinity                   | `product_salinity` (ppm)                  |
+| Product Water Temperature  | `water_temperature` (source water — the PGN's only temperature field) |
+| Post-filter Pressure       | `filter_pressure`                         |
+| System High Pressure       | `membrane_pressure`                       |
+| Pre-filter Pressure, Feed Pressure | 0 (not measured by the board)     |
+| Product Water Flow         | `product_flowrate` (L/h)                  |
+| Brine Water Flow           | `brine_flowrate` (L/h)                    |
+| Run Time                   | `runtime_elapsed` (current cycle; 0 when not reported) |
+
+The warning indicators report OK until a run result says otherwise; fields the
+board has not yet reported (emergency stop, unseen sensor values) are
+transmitted as "unavailable". If you run several boards, note that PGN 130567
+has no instance field — enable N2K publishing on only one board to avoid
+conflicting data.
 
 ## Remote access (reverse proxy)
 
@@ -140,6 +179,9 @@ test dependencies are needed. They cover:
 - **`index.js`** — the plugin schema, the `/boards` route, the yarrboard-client
   message routing, and the unit conversions applied to each update (°C→K,
   mL/h→m³/s, bar→Pa, ms→s, …). No board connection is opened.
+- **`n2k-publisher.js`** — the PGN 130567 field mapping, status enum
+  translation, unit conversions, and partial-update caching. Nothing is put on
+  a real bus; the emitted canboat-JSON is asserted directly.
 - **`board-proxy.js`** — descriptor filtering (enable/port/duplicate),
   target URL building, and the `/boards` metadata. `ReverseProxy` is stubbed so
   no ports are opened.

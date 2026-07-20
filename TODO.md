@@ -1,1 +1,6 @@
-- add support for PGN 130567 (watermaker)
+- add support for PGN 130567 (Brineomatic -> N2K)
+  - see this PR for N2K -> SK mapping: https://github.com/SignalK/n2k-signalk/pull/336
+  - we want to map our brineomatic values to the N2K pgn fields and publish on the N2K bus
+  - feature should be gated behind an 'Enable Publishing to N2K' boolean plugin config option.  default false (off)
+  - implement this as its own class/file
+  - we should publish updated values every time we get an update.

@@ -1,6 +1,7 @@
 const YarrboardClient = require("yarrboard-client");
 const { SignalKBus } = require("./signalk-bus.js");
 const { BoardProxyManager } = require("./board-proxy.js");
+const { N2KPublisher } = require("./n2k-publisher.js");
 
 // SignalK -> Brineomatic sensor forwarding. Each entry maps a per-board config
 // option to the set_watermaker field the firmware expects. SignalK carries
@@ -41,6 +42,11 @@ module.exports = function (app) {
         board.use_ssl,
         board.update_interval,
       );
+      // Opt-in N2K publishing: mirror the board's state onto the NMEA 2000
+      // bus as PGN 130567 every time an update arrives.
+      if (board.enable_n2k)
+        brineomatic.n2k = new N2KPublisher(app);
+
       brineomatic.start();
 
       plugin.connections.push(brineomatic);
@@ -190,6 +196,13 @@ module.exports = function (app) {
                 "SignalK path to forward to the board as battery state of charge, e.g. electrical.batteries.0.capacity.stateOfCharge. Ratio from 0.0 to 1.0. Leave blank to disable.",
               default: "",
             },
+            enable_n2k: {
+              type: "boolean",
+              title: "Enable Publishing to N2K",
+              description:
+                "Publish this board's watermaker status to the NMEA 2000 network as PGN 130567 (Watermaker Input Setting and Status). Requires a SignalK NMEA 2000 connection with output enabled.",
+              default: false,
+            },
             enable_proxy: {
               type: "boolean",
               title: "Enable remote-access proxy?",
@@ -252,6 +265,10 @@ module.exports = function (app) {
     };
 
     yb.queueDeltasAndUpdates = function (data) {
+
+      // Mirror this update onto the NMEA 2000 bus (opt-in, see enable_n2k).
+      if (this.n2k)
+        this.n2k.handleData(data);
 
       let mainPath = this.getMainBoardPath();
 
