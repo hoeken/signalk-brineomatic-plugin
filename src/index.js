@@ -125,7 +125,13 @@ module.exports = function (app) {
   // Metadata endpoint for the landing webapp; served at
   // /plugins/signalk-brineomatic-plugin/boards (same origin — no CORS).
   plugin.registerWithRouter = function (router) {
-    router.get("/boards", (req, res) =>
+    const access = (level) =>
+      typeof router.access === "function" ? router.access(level) : router;
+    const readonly = access("readonly");
+    // const readwrite = access("readwrite");
+    // const admin = router;
+
+    readonly.get("/boards", (req, res) =>
       res.json(plugin.boardProxies ? plugin.boardProxies.boards() : []),
     );
   };

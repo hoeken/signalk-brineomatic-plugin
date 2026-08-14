@@ -172,6 +172,19 @@ test("registerWithRouter serves /boards", async (t) => {
     routes["/boards"]({}, { json: (v) => (sent = v) });
     assert.deepEqual(sent, [{ host: "wm.local", proxy_port: 3200 }]);
   });
+
+  await t.test("registers at readonly access when the server supports it", () => {
+    const plugin = createPlugin(createFakeApp());
+    const levels = {};
+    const adminRoutes = [];
+    plugin.registerWithRouter({
+      get: (p) => adminRoutes.push(p),
+      access: (level) => ({ get: (p) => ((levels[level] ||= []).push(p)) }),
+    });
+
+    assert.deepEqual(levels, { readonly: ["/boards"] });
+    assert.deepEqual(adminRoutes, []);
+  });
 });
 
 test("getOpenApi documents the routes registerWithRouter mounts", () => {
