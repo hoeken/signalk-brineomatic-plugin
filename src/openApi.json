@@ -1,0 +1,123 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "version": "1.4.0",
+    "title": "Brineomatic plugin API",
+    "description": "HTTP API exposed by the signalk-brineomatic-plugin. Used by the plugin's own webapp to discover which Brineomatic boards have the remote-access proxy enabled and which local port each one is served on.\n\nLive watermaker data is *not* served here — it is published as Signal K deltas under `watermaker.<boardname>.*` and available through the standard Signal K API and streaming endpoints.",
+    "termsOfService": "https://github.com/hoeken/signalk-brineomatic-plugin",
+    "license": {
+      "name": "ISC",
+      "url": "https://github.com/hoeken/signalk-brineomatic-plugin/blob/main/LICENSE"
+    }
+  },
+  "externalDocs": {
+    "url": "https://github.com/hoeken/signalk-brineomatic-plugin#readme",
+    "description": "Plugin README"
+  },
+  "servers": [
+    {
+      "url": "/plugins/signalk-brineomatic-plugin"
+    }
+  ],
+  "tags": [
+    {
+      "name": "boards",
+      "description": "Brineomatic board discovery"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Board": {
+        "type": "object",
+        "title": "Board",
+        "description": "A Brineomatic board with the remote-access proxy enabled.",
+        "required": ["host", "name", "proxy_port", "state"],
+        "properties": {
+          "host": {
+            "type": "string",
+            "description": "Hostname or IP address of the board, as configured in the plugin settings.",
+            "example": "brineomatic.local"
+          },
+          "name": {
+            "type": "string",
+            "description": "User-defined name reported by the board. Falls back to the configured host until the board has sent its config.",
+            "example": "Watermaker"
+          },
+          "proxy_port": {
+            "type": "integer",
+            "description": "Local port on the Signal K server that this board's own web UI is proxied to. Reach the board at `<scheme>://<this server>:<proxy_port>/`.",
+            "example": 3200
+          },
+          "state": {
+            "type": "string",
+            "description": "Connection state of the plugin's websocket to the board.",
+            "enum": ["IDLE", "CONNECTING", "CONNECTED", "RETRYING", "FAILED"],
+            "example": "CONNECTED"
+          }
+        }
+      }
+    },
+    "responses": {
+      "ErrorResponse": {
+        "description": "Failed operation",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": ["state", "statusCode", "message"],
+              "properties": {
+                "state": {
+                  "type": "string",
+                  "enum": ["FAILED"]
+                },
+                "statusCode": {
+                  "type": "integer",
+                  "example": 404
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/boards": {
+      "get": {
+        "tags": ["boards"],
+        "summary": "List proxied Brineomatic boards",
+        "description": "Returns one entry per configured board that has the remote-access proxy enabled and running. Boards without the proxy enabled — and boards skipped because of a missing or duplicate proxy port — are not listed. Returns an empty array when the plugin is not started or no board has the proxy enabled.",
+        "operationId": "listBoards",
+        "responses": {
+          "200": {
+            "description": "Board list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Board"
+                  }
+                },
+                "example": [
+                  {
+                    "host": "brineomatic.local",
+                    "name": "Watermaker",
+                    "proxy_port": 3200,
+                    "state": "CONNECTED"
+                  }
+                ]
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    }
+  }
+}

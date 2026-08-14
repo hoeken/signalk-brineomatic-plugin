@@ -174,6 +174,19 @@ test("registerWithRouter serves /boards", async (t) => {
   });
 });
 
+test("getOpenApi documents the routes registerWithRouter mounts", () => {
+  const plugin = createPlugin(createFakeApp());
+  const openApi = plugin.getOpenApi();
+
+  assert.equal(openApi.openapi, "3.0.3");
+  assert.equal(openApi.servers[0].url, `/plugins/${plugin.id}`);
+  assert.equal(openApi.info.version, require("../package.json").version);
+
+  const routes = [];
+  plugin.registerWithRouter({ get: (p) => routes.push(p) });
+  assert.deepEqual(Object.keys(openApi.paths).sort(), routes.sort());
+});
+
 test("createYarrboard", async (t) => {
   await t.test("derives board name/path and wires the bus", () => {
     const plugin = createPlugin(createFakeApp());

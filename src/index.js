@@ -2,6 +2,8 @@ const YarrboardClient = require("yarrboard-client");
 const { SignalKBus } = require("./signalk-bus.js");
 const { BoardProxyManager } = require("./board-proxy.js");
 const { N2KPublisher } = require("./n2k-publisher.js");
+const openApi = require("./openApi.json");
+const pkg = require("../package.json");
 
 // SignalK -> Brineomatic sensor forwarding. Each entry maps a per-board config
 // option to the set_watermaker field the firmware expects. SignalK carries
@@ -127,6 +129,14 @@ module.exports = function (app) {
       res.json(plugin.boardProxies ? plugin.boardProxies.boards() : []),
     );
   };
+
+  // Documents the route above in the server Admin UI under
+  // Documentation -> OpenAPI. info.version tracks package.json so it can't go
+  // stale when a release bumps the plugin version.
+  plugin.getOpenApi = () => ({
+    ...openApi,
+    info: { ...openApi.info, version: pkg.version },
+  });
 
   plugin.schema = {
     title: "Brineomatic",
