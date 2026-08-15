@@ -1,3 +1,11 @@
+# v1.5.0
+
+_2026-08-15_
+
+### Changed
+
+- **The boards metadata endpoint no longer requires admin.** `/plugins/signalk-brineomatic-plugin/boards` is now served at **readonly** access, so the landing page and board picker work for crew logged in as readonly or readwrite users instead of only server admins. The response is unchanged (board names, hosts, proxy ports, and connection states). On signalk-server versions older than 2.31, which have no per-route access levels, the endpoint stays admin-only as before.
+
 # v1.4.0
 
 _2026-07-20_
