@@ -2,9 +2,44 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <title>Brineomatic</title>
-    <link rel="icon" type="image/png" href="logo.png" />
+    <!-- Icons are generated from assets/icon.png — see `npm run icons`. -->
+    <link rel="icon" href="icons/favicon.ico" sizes="48x48" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="icons/favicon-32.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="icons/favicon-16.png"
+    />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <!-- Dark is the default palette (style.css), so it goes in the bare tag. -->
+    <meta name="theme-color" content="#0e1726" />
+    <meta
+      name="theme-color"
+      content="#f4f7fb"
+      media="(prefers-color-scheme: light)"
+    />
+    <!-- Home-screen install: run standalone with the app title, no browser chrome.
+         mobile-web-app-capable is the standard name; Safari still only reads the
+         apple- prefixed one, so both are set. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="Brineomatic" />
     <link rel="stylesheet" href="style.css" />
     <script>
       // Apply a saved theme override before first paint so there's no flash.

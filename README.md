@@ -188,3 +188,16 @@ test dependencies are needed. They cover:
 - **`reverse-proxy.js`** — real HTTP and WebSocket proxying over loopback
   sockets, header stripping, `502` on an unreachable upstream, and `EADDRINUSE`
   handling.
+
+### Icons
+
+The favicons, the iOS/Android home-screen icons, and the SignalK app store icon
+(`signalk.appIcon`) are all generated from the single square source
+[assets/icon.png](assets/icon.png) into `public/icons/`:
+
+```sh
+npm run icons
+```
+
+The outputs are committed to git — re-run this only when the source icon
+changes. `assets/` is dev-only and is not published to npm.

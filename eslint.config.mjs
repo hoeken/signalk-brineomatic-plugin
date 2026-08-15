@@ -44,6 +44,13 @@ export default [
     },
   },
   {
+    // Dev-only build scripts (ESM, run under node).
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+  },
+  {
     // Browser-side landing page served from public/.
     files: ["public/**/*.js"],
     languageOptions: {

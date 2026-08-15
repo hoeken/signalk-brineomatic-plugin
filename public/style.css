@@ -70,6 +70,17 @@ body {
   padding: 3rem 1.25rem 4rem;
 }
 
+/* Installed to a home screen we render edge-to-edge (viewport-fit=cover plus
+   apple-mobile-web-app-status-bar-style=black-translucent), so the status bar
+   and home indicator overlay the page — pad past them. Browsers without env()
+   drop these declarations and keep the base padding above. */
+.wrap {
+  padding-top: calc(3rem + env(safe-area-inset-top));
+  padding-right: calc(1.25rem + env(safe-area-inset-right));
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  padding-left: calc(1.25rem + env(safe-area-inset-left));
+}
+
 .head {
   text-align: center;
   margin-bottom: 3rem;

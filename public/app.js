@@ -31,7 +31,7 @@ function renderGrid(boards) {
   // fields via textContent/.href so the DOM escapes untrusted board values.
   grid.innerHTML = boards.map(() => `
     <a class="card">
-      <img class="icon" src="logo.png" alt="">
+      <img class="icon" src="icons/icon-192.png" alt="">
       <div class="info">
         <div class="name"></div>
         <div class="host"></div>

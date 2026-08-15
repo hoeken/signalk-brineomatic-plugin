@@ -11,6 +11,7 @@
   "scripts": {
     "test": "node --test test/*.test.js",
     "test:coverage": "node --test --experimental-test-coverage test/*.test.js",
+    "icons": "node scripts/icons.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "format": "eslint --fix . && prettier --write .",
@@ -19,7 +20,11 @@
     "release": "git tag -d v$npm_package_version; git tag v$npm_package_version && git push && git push origin v$npm_package_version"
   },
   "lint-staged": {
-    "*.{js,mjs}": "eslint --fix",
+    "*.js": "eslint --fix",
+    "*.mjs": [
+      "eslint --fix",
+      "prettier --write"
+    ],
     "*.{json,css,html}": "prettier --write"
   },
   "repository": {
@@ -33,7 +38,7 @@
   ],
   "signalk": {
     "displayName": "Brineomatic",
-    "appIcon": "logo.png",
+    "appIcon": "icons/icon-192.png",
     "screenshots": [
       "./docs/screenshots/proxy.png",
       "./docs/screenshots/config.png"
@@ -57,6 +62,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.0.8",
     "prettier": "^3.8.3",
+    "sharp": "^0.35.3",
     "ws": "^8.18.0"
   }
 }
