@@ -2,8 +2,13 @@
 
 _2026-08-15_
 
+### Added
+
+- **The board picker can be installed to a phone or tablet home screen.** It now ships a web app manifest and the matching iOS meta tags, so adding the page to a home screen gives it the Brineomatic icon and launches it standalone, without browser chrome. The status bar follows the page's light/dark theme, and the layout pads around notches and the home indicator.
+
 ### Changed
 
+- **A full icon set replaces the single `logo.png`.** The favicons, the home-screen icons, and the SignalK app store icon are all generated from one source image by `npm run icons`, so they stay in sync. The app store card and the board tiles now use a properly sized 192×192 PNG.
 - **The boards metadata endpoint no longer requires admin.** `/plugins/signalk-brineomatic-plugin/boards` is now served at **readonly** access, so the landing page and board picker work for crew logged in as readonly or readwrite users instead of only server admins. The response is unchanged (board names, hosts, proxy ports, and connection states). On signalk-server versions older than 2.31, which have no per-route access levels, the endpoint stays admin-only as before.
 
 # v1.4.0
