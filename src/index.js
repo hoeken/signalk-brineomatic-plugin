@@ -361,8 +361,11 @@ module.exports = function (app) {
 
         // unix seconds of the last successful flush, whatever started it. Only
         // newer firmware sends it, and only once the board has NTP time.
-        if (Number.isFinite(data.last_flush_time)) {
-          this.bus.queueDelta(`${mainPath}.last_flush_time`, new Date(data.last_flush_time * 1000).toISOString());
+        // a value past the Date range would make toISOString() throw and
+        // drop the rest of the update.
+        const lastFlush = new Date(data.last_flush_time * 1000);
+        if (Number.isFinite(data.last_flush_time) && !Number.isNaN(lastFlush.getTime())) {
+          this.bus.queueDelta(`${mainPath}.last_flush_time`, lastFlush.toISOString());
 
           // clamped because the server's clock may run behind the board's.
           const sinceFlush = Math.round(Date.now() / 1000 - data.last_flush_time);

@@ -423,6 +423,20 @@ test("createYarrboard", async (t) => {
     assert.equal(Object.hasOwn(d, "watermaker.wm.time_since_flush"), false);
   });
 
+  await t.test("skips a last flush time outside the Date range and keeps the rest", () => {
+    const app = createFakeApp();
+    const plugin = createPlugin(app);
+    const yb = plugin.createYarrboard("wm.local");
+
+    yb.handleConfig({ brineomatic: true });
+    assert.doesNotThrow(() => yb.handleUpdate({ brineomatic: true, last_flush_time: 1e13, runtime_elapsed: 5000 }));
+
+    const d = collectDeltas(app);
+    assert.equal(Object.hasOwn(d, "watermaker.wm.last_flush_time"), false);
+    assert.equal(Object.hasOwn(d, "watermaker.wm.time_since_flush"), false);
+    assert.equal(d["watermaker.wm.runtime_elapsed"], 5);
+  });
+
   await t.test("publishes PGN 130567 on config and update when N2K is enabled", () => {
     const app = createFakeApp();
     const plugin = createPlugin(app);
