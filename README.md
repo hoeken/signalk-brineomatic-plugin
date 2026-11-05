@@ -152,6 +152,8 @@ The rest of the data is located at watermaker.{boardname}.*:
 | `watermaker.{boardname}.flush_valve_open`                 |        | Status of the flush valve                        |
 | `watermaker.{boardname}.cooling_fan_on`                   |        | Status of the cooling fan                        |
 | `watermaker.{boardname}.next_flush_countdown`             | s      | Time until next automatic flush cycle            |
+| `watermaker.{boardname}.last_flush_time`                  |        | Time the last successful flush finished (ISO 8601), manual or automatic |
+| `watermaker.{boardname}.time_since_flush`                 | s      | Time since the last successful flush finished    |
 | `watermaker.{boardname}.runtime_elapsed`                  | s      | Total elapsed time for watermaking cycle         |
 | `watermaker.{boardname}.finish_countdown`                 | s      | Time until watermaker cycle completes (estimate) |
 | `watermaker.{boardname}.flush_elapsed`                    | s      | Time elapsed for flush cycle                     |
@@ -160,6 +162,11 @@ The rest of the data is located at watermaker.{boardname}.*:
 | `watermaker.{boardname}.pickle_countdown`                 | s      | Time until pickle cycle completes                |
 | `watermaker.{boardname}.depickle_elapsed`                 | s      | Time elapsed for depickle cycle                  |
 | `watermaker.{boardname}.depickle_countdown`               | s      | Time until depickle cycle completes              |
+
+`last_flush_time` and `time_since_flush` need board firmware that reports
+`last_flush_time`; older firmware leaves both paths out. The board sends it once
+a flush has finished successfully and it has NTP time. `time_since_flush` is
+counted on the SignalK server's clock.
 
 ## Development
 
