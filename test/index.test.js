@@ -378,6 +378,65 @@ test("createYarrboard", async (t) => {
     assert.equal(d["watermaker.wm.board.uptime"], 5); // us -> s (round)
   });
 
+  await t.test("handleUpdate publishes the last flush time and the time since", (t) => {
+    t.mock.timers.enable({ apis: ["Date"], now: 1_800_003_600_000 });
+    const app = createFakeApp();
+    const plugin = createPlugin(app);
+    const yb = plugin.createYarrboard("wm.local");
+
+    yb.handleConfig({ brineomatic: true });
+    const metas = collectMetas(app);
+    assert.equal(metas["watermaker.wm.time_since_flush"].units, "s");
+    assert.ok(metas["watermaker.wm.last_flush_time"].description);
+    app.messages = [];
+
+    yb.handleUpdate({ brineomatic: true, last_flush_time: 1_800_000_000 });
+
+    const d = collectDeltas(app);
+    assert.equal(d["watermaker.wm.last_flush_time"], "2027-01-15T08:00:00.000Z");
+    assert.equal(d["watermaker.wm.time_since_flush"], 3600);
+  });
+
+  await t.test("time_since_flush is never negative when the board's clock is ahead", (t) => {
+    t.mock.timers.enable({ apis: ["Date"], now: 1_799_999_990_000 });
+    const app = createFakeApp();
+    const plugin = createPlugin(app);
+    const yb = plugin.createYarrboard("wm.local");
+
+    yb.handleConfig({ brineomatic: true });
+    yb.handleUpdate({ brineomatic: true, last_flush_time: 1_800_000_000 });
+
+    assert.equal(collectDeltas(app)["watermaker.wm.time_since_flush"], 0);
+  });
+
+  await t.test("publishes no flush time when the firmware does not send one", () => {
+    const app = createFakeApp();
+    const plugin = createPlugin(app);
+    const yb = plugin.createYarrboard("wm.local");
+
+    yb.handleConfig({ brineomatic: true });
+    yb.handleUpdate({ brineomatic: true, status: "IDLE" });
+    yb.handleUpdate({ brineomatic: true, last_flush_time: null });
+
+    const d = collectDeltas(app);
+    assert.equal(Object.hasOwn(d, "watermaker.wm.last_flush_time"), false);
+    assert.equal(Object.hasOwn(d, "watermaker.wm.time_since_flush"), false);
+  });
+
+  await t.test("skips a last flush time outside the Date range and keeps the rest", () => {
+    const app = createFakeApp();
+    const plugin = createPlugin(app);
+    const yb = plugin.createYarrboard("wm.local");
+
+    yb.handleConfig({ brineomatic: true });
+    assert.doesNotThrow(() => yb.handleUpdate({ brineomatic: true, last_flush_time: 1e13, runtime_elapsed: 5000 }));
+
+    const d = collectDeltas(app);
+    assert.equal(Object.hasOwn(d, "watermaker.wm.last_flush_time"), false);
+    assert.equal(Object.hasOwn(d, "watermaker.wm.time_since_flush"), false);
+    assert.equal(d["watermaker.wm.runtime_elapsed"], 5);
+  });
+
   await t.test("publishes PGN 130567 on config and update when N2K is enabled", () => {
     const app = createFakeApp();
     const plugin = createPlugin(app);

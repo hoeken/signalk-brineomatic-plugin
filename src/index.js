@@ -359,6 +359,19 @@ module.exports = function (app) {
         if (Object.hasOwn(data, "next_flush_countdown"))
           this.bus.queueDelta(`${mainPath}.next_flush_countdown`, Math.round(data.next_flush_countdown / 1000));
 
+        // unix seconds of the last successful flush, whatever started it. Only
+        // newer firmware sends it, and only once the board has NTP time.
+        // a value past the Date range would make toISOString() throw and
+        // drop the rest of the update.
+        const lastFlush = new Date(data.last_flush_time * 1000);
+        if (Number.isFinite(data.last_flush_time) && !Number.isNaN(lastFlush.getTime())) {
+          this.bus.queueDelta(`${mainPath}.last_flush_time`, lastFlush.toISOString());
+
+          // clamped because the server's clock may run behind the board's.
+          const sinceFlush = Math.round(Date.now() / 1000 - data.last_flush_time);
+          this.bus.queueDelta(`${mainPath}.time_since_flush`, Math.max(0, sinceFlush));
+        }
+
         if (Object.hasOwn(data, "runtime_elapsed"))
           this.bus.queueDelta(`${mainPath}.runtime_elapsed`, Math.round(data.runtime_elapsed / 1000));
 
@@ -440,6 +453,8 @@ module.exports = function (app) {
       this.bus.queueMeta(`${mainPath}.flush_valve_open`, { description: "Status of the flush valve" });
       this.bus.queueMeta(`${mainPath}.cooling_fan_on`, { description: "Status of the cooling fan" });
       this.bus.queueMeta(`${mainPath}.next_flush_countdown`, { units: "s", description: "Time until next automatic flush cycle" });
+      this.bus.queueMeta(`${mainPath}.last_flush_time`, { description: "Time the last successful flush cycle finished" });
+      this.bus.queueMeta(`${mainPath}.time_since_flush`, { units: "s", description: "Time since the last successful flush cycle finished" });
       this.bus.queueMeta(`${mainPath}.runtime_elapsed`, { units: "s", description: "Total elapsed time for watermaking cycle" });
       this.bus.queueMeta(`${mainPath}.finish_countdown`, { units: "s", description: "Time until watermaker cycle completes (estimate)" });
       this.bus.queueMeta(`${mainPath}.flush_elapsed`, { units: "s", description: "Time elapsed for flush cycle" });
