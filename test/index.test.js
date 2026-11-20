@@ -155,7 +155,7 @@ test("registerWithRouter serves /boards", async (t) => {
   await t.test("returns [] before the proxies are started", () => {
     const plugin = createPlugin(createFakeApp());
     const routes = {};
-    plugin.registerWithRouter({ get: (p, h) => (routes[p] = h) });
+    plugin.registerWithRouter({ get: (p, h) => (routes[p] = h), post: () => {} });
 
     let sent;
     routes["/boards"]({}, { json: (v) => (sent = v) });
@@ -166,7 +166,7 @@ test("registerWithRouter serves /boards", async (t) => {
     const plugin = createPlugin(createFakeApp());
     plugin.boardProxies = { boards: () => [{ host: "wm.local", proxy_port: 3200 }] };
     const routes = {};
-    plugin.registerWithRouter({ get: (p, h) => (routes[p] = h) });
+    plugin.registerWithRouter({ get: (p, h) => (routes[p] = h), post: () => {} });
 
     let sent;
     routes["/boards"]({}, { json: (v) => (sent = v) });
@@ -179,10 +179,16 @@ test("registerWithRouter serves /boards", async (t) => {
     const adminRoutes = [];
     plugin.registerWithRouter({
       get: (p) => adminRoutes.push(p),
-      access: (level) => ({ get: (p) => ((levels[level] ||= []).push(p)) }),
+      access: (level) => ({
+        get: (p) => ((levels[level] ||= []).push(p)),
+        post: (p) => ((levels[level] ||= []).push(p)),
+      }),
     });
 
-    assert.deepEqual(levels, { readonly: ["/boards"] });
+    assert.deepEqual(levels, {
+      readonly: ["/watermakers", "/boards"],
+      readwrite: ["/watermakers/:index/:action"],
+    });
     assert.deepEqual(adminRoutes, []);
   });
 });
@@ -196,7 +202,10 @@ test("getOpenApi documents the routes registerWithRouter mounts", () => {
   assert.equal(openApi.info.version, require("../package.json").version);
 
   const routes = [];
-  plugin.registerWithRouter({ get: (p) => routes.push(p) });
+  plugin.registerWithRouter({
+    get: (p) => routes.push(p),
+    post: (p) => routes.push(p.replace(/:(\w+)/g, "{$1}")),
+  });
   assert.deepEqual(Object.keys(openApi.paths).sort(), routes.sort());
 });
 

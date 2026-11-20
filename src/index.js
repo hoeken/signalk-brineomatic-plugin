@@ -2,6 +2,8 @@ const YarrboardClient = require("yarrboard-client");
 const { SignalKBus } = require("./signalk-bus.js");
 const { BoardProxyManager } = require("./board-proxy.js");
 const { N2KPublisher } = require("./n2k-publisher.js");
+const createControls = require("./watermaker-controls.js");
+const publishResults = require("./watermaker-notifications.js");
 const openApi = require("./openApi.json");
 const pkg = require("../package.json");
 
@@ -26,6 +28,8 @@ module.exports = function (app) {
   plugin.bus = new SignalKBus(app, plugin.id);
   plugin.connections = [];
   plugin.unsubscribes = [];
+  const controls = createControls(app, plugin);
+  const alarms = new Map();
 
   plugin.start = function (options, _restartPlugin) {
     app.debug(`YarrboardClient.version: ${YarrboardClient.version}`);
@@ -73,6 +77,8 @@ module.exports = function (app) {
 
   plugin.stop = function () {
     app.debug("Plugin stopped");
+    controls.stop();
+    alarms.clear();
 
     for (const unsubscribe of plugin.unsubscribes)
       unsubscribe();
@@ -125,6 +131,7 @@ module.exports = function (app) {
   // Metadata endpoint for the landing webapp; served at
   // /plugins/signalk-brineomatic-plugin/boards (same origin — no CORS).
   plugin.registerWithRouter = function (router) {
+    controls.registerRoutes(router);
     const access = (level) =>
       typeof router.access === "function" ? router.access(level) : router;
     const readonly = access("readonly");
@@ -142,6 +149,41 @@ module.exports = function (app) {
   plugin.getOpenApi = () => ({
     ...openApi,
     info: { ...openApi.info, version: pkg.version },
+    paths: {
+      ...openApi.paths,
+      "/watermakers": {
+        get: {
+          summary: "List configured watermakers and live telemetry",
+          responses: { 200: { description: "Board telemetry and available actions" } },
+        },
+      },
+      "/watermakers/{index}/{action}": {
+        post: {
+          summary: "Send a watermaker command and wait for the board's reply",
+          parameters: [
+            { name: "index", in: "path", required: true, schema: { type: "integer", minimum: 0 } },
+            { name: "action", in: "path", required: true, schema: { type: "string", enum: ["start", "stop", "flush"] } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: { type: "object", required: ["host"], properties: { host: { type: "string" } } },
+              },
+            },
+          },
+          responses: {
+            200: { description: "Board acknowledged the command" },
+            404: { description: "Unknown board or command" },
+            409: { description: "Unavailable command, changed configuration, or firmware rejection" },
+            415: { description: "Request requires JSON" },
+            502: { description: "Board command send failed" },
+            503: { description: "Watermaker unavailable" },
+            504: { description: "Board acknowledgement timed out" },
+          },
+        },
+      },
+    },
   });
 
   plugin.schema = {
@@ -245,6 +287,7 @@ module.exports = function (app) {
     yb.update_interval = update_interval;
 
     yb.onmessage = function (data) {
+      controls.handleMessage(this, data);
       if (data.msg == "update")
         this.handleUpdate(data);
       else if (data.msg == "config")
@@ -293,17 +336,7 @@ module.exports = function (app) {
         if (Object.hasOwn(data, "status"))
           this.bus.queueDelta(`${mainPath}.status`, data.status);
 
-        if (Object.hasOwn(data, "run_result"))
-          this.bus.queueDelta(`${mainPath}.run_result`, data.run_result);
-
-        if (Object.hasOwn(data, "flush_result"))
-          this.bus.queueDelta(`${mainPath}.flush_result`, data.flush_result);
-
-        if (Object.hasOwn(data, "pickle_result"))
-          this.bus.queueDelta(`${mainPath}.pickle_result`, data.pickle_result);
-
-        if (Object.hasOwn(data, "depickle_result"))
-          this.bus.queueDelta(`${mainPath}.depickle_result`, data.depickle_result);
+        publishResults(app, this.bus, mainPath, data, alarms);
 
         if (Object.hasOwn(data, "motor_temperature"))
           this.bus.queueDelta(`${mainPath}.motor_temperature`, data.motor_temperature + 273.15);

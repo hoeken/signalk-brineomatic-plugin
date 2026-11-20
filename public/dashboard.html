@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#080a0c" />
+    <title>Brineomatic · Watermaker</title>
+    <link rel="icon" href="icons/favicon.ico" />
+    <link rel="stylesheet" href="dashboard.css" />
+    <script defer src="dashboard.js"></script>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Brineomatic</h1>
+          <p id="connection" role="status">Connecting to Signal K…</p>
+        </div>
+        <nav aria-label="Watermaker navigation">
+          <label>Board <select id="board" aria-label="Watermaker board"></select></label>
+          <a href="index.html?proxy=1">Device interface</a>
+        </nav>
+      </header>
+      <section class="panel" aria-labelledby="control-heading">
+        <div class="section-heading">
+          <h2 id="control-heading">Controls</h2>
+          <div id="actions">
+            <button data-action="start" disabled>Start</button>
+            <button data-action="stop" disabled>Stop</button>
+            <button data-action="flush" disabled>Flush</button>
+          </div>
+        </div>
+        <div id="feedback" role="status" hidden></div>
+        <dl id="controls" class="grid"></dl>
+      </section>
+      <div class="detail">
+        <section class="panel" aria-labelledby="sensor-heading">
+          <h2 id="sensor-heading">Sensors</h2>
+          <dl id="sensors" class="grid"></dl>
+        </section>
+        <section class="panel" aria-labelledby="output-heading">
+          <h2 id="output-heading">Outputs</h2>
+          <dl id="outputs" class="grid"></dl>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>

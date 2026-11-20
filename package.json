@@ -1,6 +1,6 @@
 {
   "name": "signalk-brineomatic-plugin",
-  "version": "1.5.0",
+  "version": "1.5.0+sfh.3",
   "description": "Open hardware watermaker controller.  Data, control, and remote access.",
   "main": "src/index.js",
   "files": [
@@ -16,7 +16,6 @@
     "lint:fix": "eslint --fix .",
     "format": "eslint --fix . && prettier --write .",
     "format:check": "eslint . && prettier --check .",
-    "prepare": "husky",
     "release": "git tag -d v$npm_package_version; git tag v$npm_package_version && git push && git push origin v$npm_package_version"
   },
   "lint-staged": {
@@ -29,7 +28,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hoeken/signalk-brineomatic-plugin.git"
+    "url": "git+https://github.com/SFH008/signalk-brineomatic-plugin.git"
   },
   "keywords": [
     "signalk-node-server-plugin",
@@ -49,7 +48,7 @@
   "bugs": {
     "url": "https://github.com/hoeken/signalk-brineomatic-plugin/issues"
   },
-  "homepage": "https://github.com/hoeken/signalk-brineomatic-plugin#readme",
+  "homepage": "https://github.com/SFH008/signalk-brineomatic-plugin/tree/codex/watermaker-controls-alarms#readme",
   "dependencies": {
     "http-proxy": "^1.18.1",
     "yarrboard-client": "^1.4.1"

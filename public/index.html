@@ -2,6 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <script>
+      if (new URLSearchParams(window.location.search).get("proxy") !== "1")
+        window.location.replace("dashboard.html");
+    </script>
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
@@ -64,6 +68,7 @@
       <div id="grid" class="grid" hidden></div>
 
       <footer class="foot">
+        <a href="dashboard.html">Signal K dashboard</a>
         <button id="theme-toggle" class="theme-toggle" type="button">
           <span class="icon" aria-hidden="true"></span>
           <span class="label"></span>
